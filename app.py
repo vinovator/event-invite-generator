@@ -205,22 +205,8 @@ if df is not None:
             with open(PROMPT_FILE, 'r') as f:
                 default_template = f.read()
         else:
-            default_template = """**Invitation to [Event Name]**
-
-Dear **{name}**,
-
-We are excited to invite you to [Event Name]! It would mean a lot to us to have you with us to celebrate.
-
-Please join us for [Activity/Meal].
-
-**Date:** [Date]
-**Time:** [Time]
-**Address:** [Address]
-
-We really hope to see you there!
-
-Warm regards,
-**[Host Name]**"""
+            st.error(f"Prompt file '{PROMPT_FILE}' not found. Please ensure it exists in the data directory.")
+            st.stop()
 
         template = st.text_area(
             "Edit Message Template ({name} will be replaced)",

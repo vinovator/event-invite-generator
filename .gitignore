@@ -1,0 +1,26 @@
+# System files
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+env/
+
+# Project Specific
+output/
+*.log
+generated_invites.txt
+
+# Config
+# config.json # Uncomment if config contains secrets, currently tracking it as per user requirement.
+
+# Data files (Optional: uncomment if you want to exclude data from git)
+# data/*.xlsx
+
+# Excel temporary files
+~$*.xlsx

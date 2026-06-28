@@ -85,6 +85,11 @@ def load_data(file_bytes):
 
 # Resolve the guest-list source: an uploaded file takes priority; otherwise fall
 # back to the configured path on disk (local dev convenience).
+st.markdown(
+    "**Excel format:** column headers must be on **row 2**. "
+    "Required columns: `Addressable Names`, `Add to Invite List?` (set to `Yes` to include). "
+    "Optional: `Phone Number` (for WhatsApp links), `Invited` (updated by *Mark as Sent*)."
+)
 uploaded_file = st.file_uploader(
     "Upload guest list (.xlsx)", type=["xlsx"],
     help="Headers must be on row 2. On the cloud, upload your own file — nothing is stored on the server."

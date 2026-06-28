@@ -3,9 +3,14 @@ import pandas as pd
 import re
 import subprocess
 import os
-import pyperclip
+import sys
+import io
 import urllib.parse
 import openpyxl
+
+# True on local macOS (desktop clipboard features available),
+# False on Streamlit Community Cloud / Linux (no user-facing clipboard).
+IS_DESKTOP = sys.platform == "darwin"
 
 def copy_image_to_clipboard(image_path):
     try:
@@ -35,6 +40,16 @@ if 'generated' not in st.session_state:
     st.session_state.generated = False
 if 'selected_guests_list' not in st.session_state:
     st.session_state.selected_guests_list = []
+if 'sent_guests' not in st.session_state:
+    st.session_state.sent_guests = set()
+# source_bytes: the unchanged guest list as loaded (drives display/filtering, kept
+# stable during a session so the multiselect options don't shift mid-session).
+# workbook_bytes: a working copy mutated in memory by "Mark as Sent" and offered
+# back as a download (the persistent path on the cloud's ephemeral filesystem).
+if 'source_bytes' not in st.session_state:
+    st.session_state.source_bytes = None
+if 'workbook_bytes' not in st.session_state:
+    st.session_state.workbook_bytes = None
 
 # Load configuration
 import json
@@ -54,27 +69,51 @@ GUEST_LIST_FILE = config.get("guest_list_file", "WhatsApp Invite List.xlsx")
 INVITE_IMAGE_FILE = config.get("invite_image_file", "WhatsApp Invite.png")
 PROMPT_FILE = config.get("prompt_file", "invitation_prompt.md")
 
-# Load data function
+# Load data function. Operates on raw bytes so the same code path works for an
+# uploaded file (cloud) and a file read from disk (local dev).
 @st.cache_data
-def load_data():
+def load_data(file_bytes):
     try:
         # header=1 as per previous script usage
-        df = pd.read_excel(GUEST_LIST_FILE, header=1)
+        df = pd.read_excel(io.BytesIO(file_bytes), header=1)
         # Clean up column names just in case
         df.columns = df.columns.str.strip()
         return df
     except Exception as e:
-        st.error(f"Error loading Excel file '{GUEST_LIST_FILE}': {e}")
+        st.error(f"Error loading Excel file: {e}")
         return None
 
-df = load_data()
+# Resolve the guest-list source: an uploaded file takes priority; otherwise fall
+# back to the configured path on disk (local dev convenience).
+uploaded_file = st.file_uploader(
+    "Upload guest list (.xlsx)", type=["xlsx"],
+    help="Headers must be on row 2. On the cloud, upload your own file — nothing is stored on the server."
+)
+
+if uploaded_file is not None:
+    source_bytes = uploaded_file.getvalue()
+elif os.path.exists(GUEST_LIST_FILE):
+    with open(GUEST_LIST_FILE, "rb") as f:
+        source_bytes = f.read()
+else:
+    st.info("Please upload a guest list (.xlsx) to get started.")
+    st.stop()
+
+# When the source changes (new upload), reset the working copy and sent tracking.
+if source_bytes != st.session_state.source_bytes:
+    st.session_state.source_bytes = source_bytes
+    st.session_state.workbook_bytes = source_bytes
+    st.session_state.sent_guests = set()
+
+df = load_data(st.session_state.source_bytes)
 
 def update_excel_status(guest_name, status="Yes"):
     try:
         from openpyxl import load_workbook
-        
-        # Load the workbook
-        wb = load_workbook(GUEST_LIST_FILE)
+
+        # Load the workbook from the in-memory bytes (works on the cloud's
+        # ephemeral filesystem, where writing back to a disk path would be lost).
+        wb = load_workbook(io.BytesIO(st.session_state.workbook_bytes))
         # Assume first sheet
         ws = wb.active
         
@@ -117,12 +156,21 @@ def update_excel_status(guest_name, status="Yes"):
                 break
         
         if row_updated:
-            wb.save(GUEST_LIST_FILE)
+            # Persist the change in memory and offer it back via download.
+            buf = io.BytesIO()
+            wb.save(buf)
+            st.session_state.workbook_bytes = buf.getvalue()
+            st.session_state.sent_guests.add(guest_name)
+
+            # On local macOS with a real on-disk source, also save to that file
+            # to preserve the original desktop behavior.
+            if IS_DESKTOP and uploaded_file is None and os.path.exists(GUEST_LIST_FILE):
+                wb.save(GUEST_LIST_FILE)
             return True
         else:
             st.error(f"Could not find guest '{guest_name}' in the file.")
             return False
-            
+
     except Exception as e:
         st.error(f"Error updating Excel: {e}")
         return False
@@ -218,13 +266,24 @@ if df is not None:
         st.subheader("Image Attachment")
         if os.path.exists(INVITE_IMAGE_FILE):
             st.image(INVITE_IMAGE_FILE, width=300)
-            
-            if st.button(f"📷 Copy Image to Clipboard", key="copy_img_global", use_container_width=True):
-                img_path = os.path.abspath(INVITE_IMAGE_FILE)
-                if copy_image_to_clipboard(img_path):
-                    st.success("Image copied! You can now Paste it into WhatsApp.")
-                else:
-                    st.error("Failed to copy image.")
+
+            # Copy-to-clipboard is macOS-only (uses osascript); hide it elsewhere.
+            if IS_DESKTOP:
+                if st.button(f"📷 Copy Image to Clipboard", key="copy_img_global", use_container_width=True):
+                    img_path = os.path.abspath(INVITE_IMAGE_FILE)
+                    if copy_image_to_clipboard(img_path):
+                        st.success("Image copied! You can now Paste it into WhatsApp.")
+                    else:
+                        st.error("Failed to copy image.")
+
+            # Download works everywhere — save the image and attach it manually
+            # in WhatsApp (wa.me links cannot carry an image).
+            with open(INVITE_IMAGE_FILE, "rb") as imgf:
+                st.download_button(
+                    "⬇️ Download Image", data=imgf.read(),
+                    file_name=os.path.basename(INVITE_IMAGE_FILE),
+                    mime="image/png", use_container_width=True,
+                )
         else:
             st.warning(f"Image '{INVITE_IMAGE_FILE}' not found.")
 
@@ -259,11 +318,18 @@ if df is not None:
                             st.caption("Preview (Rendered):")
                             st.info(preview_msg)    
                             
+                            # WhatsApp-formatted text (** -> * for bold). st.code
+                            # below renders a browser-native copy button that works
+                            # on the cloud, replacing the desktop-only pyperclip copy.
+                            whatsapp_msg = final_msg.replace("**", "*")
+
                             # Action Buttons (Side by Side)
-                            bc1, bc2, bc3, bc4 = st.columns([1, 1, 1, 1])
-                            
+                            bc1, bc2, bc3 = st.columns([1, 1, 1])
+
                             with bc1:
-                                if os.path.exists(INVITE_IMAGE_FILE):
+                                # Image copy is macOS-only (osascript); on the cloud
+                                # use the global "Download Image" button instead.
+                                if IS_DESKTOP and os.path.exists(INVITE_IMAGE_FILE):
                                     if st.button(f"📷 Copy Image", key=f"img_local_{guest}", use_container_width=True):
                                         img_path = os.path.abspath(INVITE_IMAGE_FILE)
                                         if copy_image_to_clipboard(img_path):
@@ -272,47 +338,33 @@ if df is not None:
                                             st.error("Failed to copy image.")
 
                             with bc2:
-                                if st.button(f"📋 Copy Text", key=f"txt_{guest}", use_container_width=True):
-                                    try:
-                                        # Convert Markdown bold (**) to WhatsApp bold (*)
-                                        whatsapp_msg = final_msg.replace("**", "*")
-                                        pyperclip.copy(whatsapp_msg)
-                                        st.toast(f"Text for {guest} copied!", icon="📋")
-                                    except Exception as e:
-                                        st.error(f"Could not copy text: {e}")
-                            
-                            with bc3:
                                 # WhatsApp Link
                                 guest_row = df_final[df_final['Addressable Names'] == guest]
                                 if not guest_row.empty and phone_col in df_final.columns:
                                     raw_phone = str(guest_row.iloc[0][phone_col])
                                     # Basic cleaning: remove non-digit characters except +
                                     clean_phone = re.sub(r'[^\d+]', '', raw_phone)
-                                    
+
                                     if clean_phone:
-                                        encoded_msg = urllib.parse.quote(final_msg.replace("**", "*"))
+                                        encoded_msg = urllib.parse.quote(whatsapp_msg)
                                         wa_link = f"https://wa.me/{clean_phone}?text={encoded_msg}"
                                         st.link_button(f"💬 WhatsApp", wa_link, use_container_width=True)
                                     else:
                                         st.caption("No phone #")
                                 else:
                                     st.caption("No phone #")
-                            
-                            with bc4:
+
+                            with bc3:
                                 # Mark as Sent
-                                if st.button(f"✅ Mark Sent", key=f"sent_{guest}", use_container_width=True):
+                                if guest in st.session_state.sent_guests:
+                                    st.button("✅ Sent", key=f"sent_{guest}", use_container_width=True, disabled=True)
+                                elif st.button(f"✅ Mark Sent", key=f"sent_{guest}", use_container_width=True):
                                     if update_excel_status(guest, "Yes"):
                                         st.toast(f"Marked {guest} as sent!", icon="✅")
-                                        # Clear cache so the filter updates on next reload
-                                        st.cache_data.clear()
-                                        # Optional: force rerun if you want immediate disappearance, 
-                                        # but usually toast is enough feedback until next refresh
-                                        # st.rerun() 
 
-
-                            # Raw text for manual copying (fallback)
-                            with st.expander("Show Raw Text"):
-                                 st.code(final_msg, language=None)
+                            # Copy-ready text (browser-native copy button on the icon)
+                            st.caption("Copy text (WhatsApp formatting):")
+                            st.code(whatsapp_msg, language=None)
                         
                         output_text += f"--- MESSAGE FOR: {guest} ---\n{final_msg}\n{'-'*40}\n\n"
                         
@@ -326,5 +378,17 @@ if df is not None:
                     mime="text/plain"
                 )
 
+        # Updated guest list with "Mark as Sent" changes. This is the persistent
+        # path on the cloud, where on-disk write-back would be lost on restart.
+        if st.session_state.sent_guests:
+            st.markdown("---")
+            st.caption(f"{len(st.session_state.sent_guests)} guest(s) marked as sent this session.")
+            st.download_button(
+                label="⬇️ Download updated guest list (.xlsx)",
+                data=st.session_state.workbook_bytes,
+                file_name="guest_list_updated.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+
 else:
-    st.info(f"Please ensure '{GUEST_LIST_FILE}' is in the same directory.")
+    st.info("Please upload a guest list (.xlsx) to get started.")

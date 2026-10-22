@@ -6,11 +6,24 @@ A web page for sending personalised event invitations on WhatsApp, one guest at 
 
 Everything runs in your browser: your guest list, message and progress never leave your device. There is nothing to install, and it works on a phone too.
 
+![Sending screen: the steps to copy each part on the left, and the guest's WhatsApp preview on the right](docs/screenshots/send.png)
+
 ## How it works
 
-**Start:** drop your Excel guest list on the page, or click **Upload guest list (.xlsx)**. No list yet? Use **Download blank guest list template (.xlsx)**, or **Try with a sample guest list** to try the app with numbered sample guests (Guest-1, Guest-2…). **What should my Excel guest list look like?** explains the columns.
+In short: **open your Excel list → choose guests and write the message once → copy each guest's invite into WhatsApp → the Excel file records who was invited.**
 
-**Set up, on one page** (side by side on a wide screen):
+### 1. Start
+
+Drop your Excel guest list on the page, or click **Upload guest list (.xlsx)**. No list yet? Use **Download blank guest list template (.xlsx)**, or **Try with a sample guest list** to try the app with numbered sample guests (Guest-1, Guest-2…). **What should my Excel guest list look like?** explains the columns.
+
+![Start screen with the drop zone for the Excel guest list](docs/screenshots/start.png)
+
+### 2. Set up, on one page
+
+Side by side on a wide screen, one under the other on a phone:
+
+![Set-up page: choose guests on the left, write the invitation in the middle, event details on the right, and the Start sending bar at the bottom](docs/screenshots/setup.png)
+
 
 1. **Choose guests:** filter by **Category**, search, then **Select all shown** or tick guests one by one. The bar at the bottom adds up the headcount (Estimated Count, Adults, Kids…).
 2. **Write the invitation:**
@@ -21,16 +34,26 @@ Everything runs in your browser: your guest list, message and progress never lea
 
 Then click **Start sending** in the bar at the bottom.
 
-**Sending** shows one guest at a time. On a computer the buttons are on the left and the WhatsApp preview on the right, so you can read the message while you copy; in a narrow window or on a phone, the buttons sit at the bottom of the screen:
+### 3. Send, one guest at a time
+
+On a computer the buttons are on the left and the WhatsApp preview on the right (see the screenshot at the top), so you can read the message while you copy. In a narrow window or on a phone, the buttons sit at the bottom of the screen:
 
 1. **Copy contact name**, then paste it into WhatsApp's search to open the chat;
 2. **Copy invite image**, paste it and send;
 3. **Copy message text**, paste it and send;
 4. **Mark as sent & go to next guest** (with **Undo: mark as not sent**).
 
+<img src="docs/screenshots/phone-send-dark.png" alt="Sending on a phone, in dark mode: the steps float at the bottom of the screen" width="300">
+
 On a computer the keyboard does it too: **1**, **2**, **3** copy, **Enter** marks as sent and moves on, **←** / **→** change guest.
 
+### 4. Done
+
 When everyone selected is marked as sent, a summary appears at the top with the headcount and **Download updated guest list (.xlsx)**. **Invite more guests** takes you back to choose the next group.
+
+![Summary after every selected guest is marked as sent, with the headcount and a button to download the updated guest list](docs/screenshots/summary.png)
+
+### Your Excel file, saving and the More menu
 
 Marking a guest as sent fills in `Invited?` = Yes and `Invited On` (date and time) in the workbook. In Chrome or Edge you can tick *Also save changes straight into …* under the guest list to write straight back into your Excel file; other browsers download an updated copy. The **More** menu (top right) has the rarer actions: download the updated or original guest list, download all the messages as text, the blank template, and **Clear data saved in this browser** (e.g. on a shared computer).
 
@@ -88,4 +111,5 @@ Download the repository (*Code → Download ZIP*), unzip it and double-click `in
 - Tests: `node tests/convert.test.js`
 - Hosting: GitHub Pages serves the `main` branch (root folder), so pushing to `main` updates the live site within a minute or two.
 - Icons: [Lucide](https://lucide.dev) (ISC licence), inlined as an SVG sprite.
+- Screenshots: `docs/screenshots/`, taken from the sample guest list (Guest-1, Guest-2…) so no real names appear.
 - Install as an app: `manifest.webmanifest` and the PNG icons in `icons/` (the logo from the page's favicon).

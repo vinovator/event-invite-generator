@@ -2,27 +2,9 @@
 .DS_Store
 Thumbs.db
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.env
-venv/
-env/
-
-# Project Specific
-output/
-*.log
-generated_invites.txt
-# Backups made by "Mark sent" before overwriting a local guest list (may hold real data)
-* (backup).xlsx
-
-# Config
-# config.json # Uncomment if config contains secrets, currently tracking it as per user requirement.
-
-# Data files (Optional: uncomment if you want to exclude data from git)
-# data/*.xlsx
-
-# Excel temporary files
+# Excel lock files created while a workbook is open
 ~$*.xlsx
+
+# Your real guest lists, images and templates: keep them in private/ so they
+# never end up in this public repo (the app opens files from anywhere).
+private/

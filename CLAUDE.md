@@ -4,61 +4,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Tool to bulk-generate personalized event invitation messages (aimed at WhatsApp) from an Excel guest list. It only *drafts* messages and puts them on the clipboard — it never sends them, and the user opens each WhatsApp chat themselves (phone numbers are deliberately not used). There is no test suite and no linter config.
+A browser-only page for preparing personalised WhatsApp invitations from an Excel guest list. It only drafts and copies messages — it never sends them; the user opens each WhatsApp chat themselves (phone numbers are deliberately not used). There is no server, no build step and no package manager: open `index.html` directly or host the repo on GitHub Pages.
 
-## Commands
+## Files
 
-```bash
-# Install dependencies
-pip install -r requirements.txt
+- **`index.html`** — the whole app: markup, CSS (light/dark via `prefers-color-scheme`) and the app script (an IIFE at the bottom). Loads Quill 2.0.3 and ExcelJS 4.4.0 from jsDelivr (pinned), then `convert.js`.
+- **`convert.js`** — pure helpers on `window.WaConvert` (or `module.exports` in Node): WhatsApp text ↔ Quill (`markupToHtml`, `deltaToMarkup`, `looksLikeMarkup`), the preview bubble (`whatsappPreviewHtml`), and a guest's message (`renderMessage`, `templateIssues`, `emptyFields`).
+- **`tests/convert.test.js`** — `node tests/convert.test.js`, no dependencies. Run it after touching `convert.js`.
+- **`data/`** — sample guest list, image and template, used by "Try sample data" (only when served over http(s); `fetch` is blocked on `file://`).
 
-# Run the web app (primary interface)
-streamlit run app.py
+## Conventions (easy to break)
 
-# Run the batch CLI (writes output/Invite_Drafts.md)
-python Invite_draft.py
-```
+- **Excel layout:** headers on **row 2** of the **first sheet** (`HEADER_ROW`), guests from row 3. Columns are matched case-insensitively by header text. Required: `Addressable Names`, `Add to Invite List?`. Optional: `Name` (WhatsApp contact name for 🔍 Copy name), `Category`, `Invited?`/`Invited`, `Invited On`, count columns (headers starting with "estimated count", "adults", "kids", "children", "headcount", "pax").
+- **Guests are identified by their Excel row number** (from ExcelJS `eachRow`) — duplicate names and blank rows are safe. Yes/No cells accept yes / y / true / 1 / ✓ / ✔.
+- **Available guests** = marked to invite, not already `Invited?` = yes, with a non-empty name. Rows marked sent *this session* stay in the list (their `Invited?` now says Yes).
+- **Mark sent** writes `Invited?` = "Yes" and `Invited On` = local time stored as UTC "wall time" (`excelNow()`; read back with `timeZone: "UTC"`), creating either header in the next free column. **Undo** restores the previous cell values (`state.prev`).
+- **Templates are stored as WhatsApp text** (`*bold*`, `_italic_`, `~strike~`, ```` ```mono``` ````, `- `/`1. ` lists, `> ` quotes) — that's what is copied and downloaded; the editor only displays it as rich text. `renderMessage` turns legacy `**` into `*`, `{name}` into `Addressable Names`, and `{Any Column}` into that row's value (case-insensitive); unknown placeholders are left as typed.
+- **WhatsApp marker rules** (markers hug the text, stay on one line, aren't glued to letters/digits) live in `convert.js` `stylePattern`; the editor conversion and the preview share them. Formatting WhatsApp can't show (mid-word, inside monospace) is dropped when converting from the editor.
+- **Never insert guest data as HTML:** use `textContent`; the preview goes through `whatsappPreviewHtml`, which escapes everything.
 
-## Entry points, shared conventions
+## State and persistence
 
-- **`app.py`** — Streamlit web UI. Three-column flow: select guests → edit template & image → copy & send one guest at a time. Stateful via `st.session_state`. Designed to run both on local macOS and Streamlit Community Cloud — see "Platform dependency" below.
-- **`invite_helpers.py`** — pure helpers (no Streamlit) used by `app.py`: `render_message`, `whatsapp_to_html` (preview), `build_guest_list_template`, `mark_row` (Excel write-back), `prepare_image`/`image_mime`, `copy_buttons_html`. Checkable from a plain Python shell.
-- **`wa_editor/`** — the Word-like template editor, a Streamlit custom component with no build step: `index.html` (loads Quill 2.0.3 from jsDelivr; falls back to a plain `<textarea>` if that fails), `editor.js` (implements the component postMessage protocol by hand), `convert.js` (WhatsApp text ↔ Quill Delta; loadable in Node for checks). Declared in `app.py` with `components.declare_component("wa_editor", path=...)`.
-- **`Invite_draft.py`** — Stateless batch script. Reads the same inputs and dumps every drafted message to `output/Invite_Drafts.md`. No write-back.
+All state is in the `state` object inside the IIFE. localStorage keys:
+- `invite.template` — the template (WhatsApp text), saved on every edit.
+- `invite.image` — `{name, type, dataUrl}`; skipped if larger than ~3.5 MB.
+- `invite.session` — file name, workbook bytes (base64), original bytes (if small), selection, current guest, sent rows, previous values, category, `changed`, `savedAt`. Offered back via the "Resume" banner on load.
 
-`app.py` and `Invite_draft.py` independently reimplement `load_config()` and the same Excel-reading conventions — changes to data handling usually need to be mirrored in both files.
+"Save changes into <file>" uses the File System Access API (`showOpenFilePicker` + `createWritable`, Chrome/Edge desktop only), opt-in per session; writes go through the serialized `saving` promise chain. Other browsers use "Download updated list".
 
-## Critical data conventions (easy to break)
+## Copying
 
-- **Excel headers are on row 2** (`HEADER_ROW` in `invite_helpers.py`), so reads use `pd.read_excel(..., header=1)` and `mark_row` looks for headers on row 2. Pandas keeps blank rows, so **Excel row = DataFrame index + 3**.
-- **Guests are identified by row index**, not by name: the multiselect options, `current_row` and `sent_rows` are row indices, so duplicate `Addressable Names` stay distinct (duplicates are labelled with their Excel row). `mark_row` checks the name in that row before writing and always uses the **first** sheet (`wb.worksheets[0]`, matching pandas — not `wb.active`).
-- **Required columns** (case-insensitive after `.strip()`): `Addressable Names`, `Add to Invite List?`. Optional: `Invited` / `Invited?` (`mark_row` adds `Invited?` if missing). All other columns, including any phone number, are ignored.
-- **Filtering logic** (app.py): include rows where `Add to Invite List?` == "yes" AND `Invited` != "yes" AND the name is non-empty. The CLI only applies the first condition.
-- **Template placeholder**: `{name}` is substituted with `str.replace` (in both scripts), so any other `{`/`}` in the template is harmless. Do not switch back to `str.format`.
-- **Templates are stored in WhatsApp-native formatting** (`*bold*`, `_italic_`, `~strike~`, ```` ```mono``` ````, `` `code` ``, `> quote`, `- ` lists) — that's what is copied, saved and passed to the CLI; the editor only displays it as rich text. `convert.js` must follow the same marker rules as `invite_helpers._style_pattern` (markers hug the text, one line, not glued to letters/digits); formatting WhatsApp can't show (mid-word, inside monospace) is dropped when converting. Legacy Markdown `**bold**` is converted to `*bold*` when rendering (both scripts). The preview (`whatsapp_to_html` + `st.html`) mimics WhatsApp's rules; never render messages with `st.markdown` (Markdown treats `*x*` as italic and `$…$` as LaTeX).
-
-## Data input (app.py)
-
-The guest list comes from either an `st.file_uploader` (key `guest_upload`; preferred — required on the cloud) or, if nothing is uploaded, the `config.json` path read from disk (local dev). Session-state buffers:
-- **`source_bytes`** — the unchanged list; drives display/filtering and is kept stable during a session so the guest options don't shift mid-session. `load_data` is cached on these bytes.
-- **`workbook_bytes`** — a working copy mutated in memory by "Mark sent"/"Undo" and offered back via download. Reset (with `sent_rows`, `selected_rows`, `current_row`) whenever a new source is detected.
-- **`last_saved_bytes`** — what "Mark sent" last wrote to the on-disk list (local only), so the app doesn't mistake its own write for a new source.
-
-The template text lives in `st.session_state.template_text`. The editor (`key="template_editor"`) gets `value` + `version` and returns `{"text", "version"}` (synced ~0.5 s after typing stops, and on blur). The template uploader's `on_change` callback replaces the text and bumps `template_version`, which makes the editor reload; editor values carrying an older version are ignored. `app.py` reads the editor's value from session state **before** rendering it, so the editor is always handed the newest text — Streamlit occasionally re-creates the component frame (seen on the first edit of a session), and `editor.js` also keeps the unsent draft and cursor on `window.parent.waEditorMemory` to carry on seamlessly. The invite image comes from the image uploader, else `invite_image_file`.
-
-## Streamlit gotcha: the guest navigator
-
-The send column's selectbox (`key="current_row"`) has ✅/⏳ labels, so Streamlit rebuilds it (new widget id) whenever a guest is marked/unmarked or the selection changes — and then falls back to a stale value. That's why `app.py` re-assigns `st.session_state.current_row` on **every** run before rendering the selectbox. Keep that if you touch the navigator.
-
-## Configuration
-
-`config.json` defines all file paths (`guest_list_file`, `invite_image_file`, `prompt_file`, `output_file`). Both scripts fall back to hardcoded `data/...` defaults if it's missing. On the cloud, the uploaders supersede these.
-
-## Platform dependency
-
-- **Copying** (image and text) uses the browser Clipboard API inside a `components.html` iframe (`copy_buttons_html`; Streamlit grants the iframe `clipboard-write`). Works locally and on the cloud — no `osascript`/`pyperclip`. Browsers only put **PNG** on the clipboard, so `prepare_image` converts (and caps at 2048 px). The clipboard holds one item, so image and text are copied separately.
-- `IS_DESKTOP = sys.platform == "darwin"` now only gates **disk writes**: "Mark sent" also saves to the on-disk guest list (after a one-time `(backup)` copy per session, since openpyxl drops images/charts), and "Save as default template" writes `prompt_file`. Both are hidden/skipped on the cloud, whose filesystem is ephemeral and shared by every visitor.
-
-## Gitignored at runtime
-
-`output/` and `generated_invites.txt` are gitignored — the `output/` dir is created on demand by `Invite_draft.py`.
+`navigator.clipboard.writeText` (with an `execCommand` fallback) and `navigator.clipboard.write([new ClipboardItem({"image/png": blob})])`. Browsers only put PNG on the clipboard, so uploaded images are converted once via canvas (`toPng`, max 2048 px). The ClipboardItem is built synchronously in the click handler (Safari requirement). `flushEdit()` applies pending editor changes before copying.

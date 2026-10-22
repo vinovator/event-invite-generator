@@ -1,6 +1,0 @@
-{
-    "guest_list_file": "data/WhatsApp Invite List dummy.xlsx",
-    "invite_image_file": "data/WhatsApp Invite.png",
-    "prompt_file": "data/invitation_prompt.md",
-    "output_file": "output/Invite_Drafts.md"
-}

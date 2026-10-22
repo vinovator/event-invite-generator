@@ -1,0 +1,1353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event Invitation Generator</title>
+<!-- Quill (rich-text editor), pinned. If it can't load, a plain text box is used. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel: #f6f7f9;
+    --text: #1f2328;
+    --muted: #667085;
+    --border: #d5dae1;
+    --accent: #128c7e;
+    --accent-text: #ffffff;
+    --ok: #177233;
+    --err: #b42318;
+    --warn-bg: #fff6e0;
+    --warn-text: #7a4f00;
+    --info-bg: #eaf3ff;
+    --info-text: #164a8a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1117;
+      --panel: #171b23;
+      --text: #e6edf3;
+      --muted: #98a2b3;
+      --border: #313844;
+      --accent: #25a18e;
+      --ok: #3dd56d;
+      --err: #ff7b72;
+      --warn-bg: #3a2e12;
+      --warn-text: #f2c96d;
+      --info-bg: #13263f;
+      --info-text: #9cc7ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  .page { max-width: 1440px; margin: 0 auto; padding: 16px 20px 40px; }
+  h1 { font-size: 28px; margin: 8px 0 4px; }
+  h2 { font-size: 20px; margin: 0 0 12px; }
+  h3 { font-size: 16px; margin: 20px 0 8px; }
+  p { margin: 6px 0; }
+  .muted, .caption { color: var(--muted); font-size: 13px; }
+  code { font-size: 12.5px; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+
+  button, .file-button, select, input[type="search"] {
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px;
+  }
+  button, .file-button { cursor: pointer; }
+  button:hover:not(:disabled), .file-button:hover { border-color: var(--accent); color: var(--accent); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+  button.primary:hover:not(:disabled) { color: var(--accent-text); filter: brightness(1.08); }
+  button.link { border: 0; padding: 0; background: none; color: var(--accent); text-decoration: underline; font-size: 13px; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .grow > * { flex: 1 1 0; }
+  .stack > * + * { margin-top: 10px; }
+
+  .info, .warn, .success, .error { border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+  .info { background: var(--info-bg); color: var(--info-text); }
+  .warn { background: var(--warn-bg); color: var(--warn-text); }
+  .success { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
+  .error { background: color-mix(in srgb, var(--err) 14%, transparent); color: var(--err); display: flex; gap: 10px; justify-content: space-between; }
+
+  .columns { display: grid; grid-template-columns: minmax(240px, 0.85fr) minmax(300px, 1.25fr) minmax(330px, 1.6fr); gap: 24px; margin-top: 18px; }
+  @media (max-width: 1000px) { .columns { grid-template-columns: 1fr; } }
+
+  .checklist { max-height: 380px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+  .checklist label { display: flex; gap: 8px; align-items: flex-start; padding: 6px 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .checklist label:last-child { border-bottom: 0; }
+  .checklist .who { display: flex; flex-direction: column; }
+  .checklist .sub { color: var(--muted); font-size: 12.5px; }
+  input[type="search"] { width: 100%; }
+
+  /* Editor */
+  #toolbar.ql-toolbar.ql-snow { border: 1px solid var(--border); border-radius: 8px 8px 0 0; background: var(--panel); }
+  .insert-bar { border: 1px solid var(--border); border-top: 0; background: var(--panel); padding: 4px 8px; }
+  .insert-bar select { padding: 3px 8px; font-size: 13px; }
+  #editor.ql-container.ql-snow { border: 1px solid var(--border); border-top: 0; border-radius: 0 0 8px 8px; font: inherit; }
+  .ql-editor { min-height: 280px; max-height: 460px; overflow-y: auto; font-size: 15px; line-height: 1.5; color: var(--text); }
+  .ql-editor.ql-blank::before { color: var(--muted); font-style: normal; }
+  .ql-snow .ql-editor code { background: var(--panel); border-radius: 3px; padding: 0 3px; }
+  .ql-snow .ql-editor blockquote { border-left: 3px solid var(--border); padding-left: 10px; }
+  .ql-snow .ql-stroke { stroke: var(--text); }
+  .ql-snow .ql-fill { fill: var(--text); }
+  .ql-snow.ql-toolbar button:hover .ql-stroke, .ql-snow.ql-toolbar button.ql-active .ql-stroke { stroke: var(--accent); }
+  .ql-snow.ql-toolbar button:hover .ql-fill, .ql-snow.ql-toolbar button.ql-active .ql-fill { fill: var(--accent); }
+  #plain { width: 100%; min-height: 280px; padding: 10px 12px; font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-top: 0; border-radius: 0 0 8px 8px; resize: vertical; }
+
+  details.box { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-top: 12px; }
+  details.box summary { cursor: pointer; }
+  .thumb { max-width: 260px; max-height: 260px; border-radius: 8px; border: 1px solid var(--border); display: block; }
+
+  /* Send column */
+  .progress { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .progress > div { height: 100%; width: 0; background: var(--accent); transition: width 0.2s; }
+  .savebar { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13.5px; }
+  .nav { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; }
+  .card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .card-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; font-size: 18px; }
+  .copy-row button { flex: 1 1 120px; }
+  .status { min-height: 20px; font-size: 13.5px; }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--err); }
+  pre.raw { white-space: pre-wrap; font-size: 13px; background: var(--panel); border-radius: 8px; padding: 10px; }
+
+  #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg);
+    padding: 8px 16px; border-radius: 99px; font-size: 14px; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
+  #toast.show { opacity: 0.92; }
+  footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>🎉 Event Invitation Generator</h1>
+  <p class="muted">
+    Excel guest list: headers on <b>row 2</b>. Required columns: <code>Addressable Names</code> (the greeting, <code>{name}</code>)
+    and <code>Add to Invite List?</code> (<code>Yes</code> to include). Optional: <code>Name</code> (WhatsApp contact name),
+    <code>Category</code>, <code>Invited?</code> / <code>Invited On</code> (filled in by <i>Mark sent</i>), and any other column
+    for <code>{Column}</code> placeholders. Everything stays in this browser — nothing is uploaded.
+  </p>
+  <div class="row">
+    <button id="open-list" class="primary">📂 Open guest list (.xlsx)</button>
+    <input type="file" id="list-input" accept=".xlsx" hidden>
+    <button id="download-blank">⬇️ Blank template (.xlsx)</button>
+    <button id="try-sample" hidden>Try sample data</button>
+    <span id="file-name" class="muted"></span>
+  </div>
+  <div id="resume" class="info row" hidden style="margin-top:10px">
+    <span id="resume-text"></span>
+    <button id="resume-yes" class="primary">Resume</button>
+    <button id="resume-no">Discard</button>
+  </div>
+  <div id="error" class="error" hidden style="margin-top:10px"><span id="error-text"></span><button class="link" id="error-close">Dismiss</button></div>
+
+  <div class="columns">
+    <!-- 1. Guests -->
+    <section class="stack">
+      <h2>👥 1. Select guests</h2>
+      <p id="guests-empty" class="info">Open your guest list to start — or download the blank template, fill it in, and open it.</p>
+      <div id="guests-ui" class="stack" hidden>
+        <p id="breakdown" class="info"></p>
+        <p id="column-notes" class="muted" hidden></p>
+        <select id="category" aria-label="Category"></select>
+        <input type="search" id="search" placeholder="Search guests" aria-label="Search guests">
+        <div class="row grow"><button id="select-visible">Select all</button><button id="clear-selection">Clear</button></div>
+        <div id="guest-list" class="checklist"></div>
+        <p id="selected-summary"></p>
+      </div>
+    </section>
+
+    <!-- 2. Message & image -->
+    <section>
+      <h2>✍️ 2. Message &amp; image</h2>
+      <div id="toolbar">
+        <span class="ql-formats">
+          <button class="ql-bold" title="Bold (⌘B / Ctrl+B)"></button>
+          <button class="ql-italic" title="Italic (⌘I / Ctrl+I)"></button>
+          <button class="ql-strike" title="Strikethrough (⌘⇧X / Ctrl+Shift+X)"></button>
+          <button class="ql-code" title="Monospace"></button>
+        </span>
+        <span class="ql-formats">
+          <button class="ql-list" value="bullet" title="Bulleted list"></button>
+          <button class="ql-list" value="ordered" title="Numbered list"></button>
+          <button class="ql-blockquote" title="Quote"></button>
+        </span>
+        <span class="ql-formats"><button class="ql-clean" title="Clear formatting"></button></span>
+      </div>
+      <!-- Outside #toolbar on purpose: Quill would restyle any <select> inside it. -->
+      <div class="insert-bar">
+        <select id="insert-field" aria-label="Insert a field"><option value="">+ Insert field…</option></select>
+      </div>
+      <div id="editor"></div>
+      <textarea id="plain" hidden aria-label="Message template"></textarea>
+      <p class="caption">Select text and use the toolbar. Pasting from Word, Google Docs or an email keeps bold, italic and
+        strikethrough; WhatsApp has no underline, colours or font sizes, so those are dropped.</p>
+      <div id="template-warnings" class="stack"></div>
+      <p class="caption" id="preview-label"></p>
+      <div id="preview"></div>
+      <details class="box">
+        <summary>📂 Load / save template</summary>
+        <div class="row" style="margin-top:8px">
+          <label class="file-button">Load template (.txt / .md)<input type="file" id="template-input" accept=".txt,.md,text/plain" hidden></label>
+          <button id="download-template">💾 Download template (.txt)</button>
+          <button id="reset-template">↺ Reset to sample</button>
+        </div>
+        <p class="caption">Your template is also kept in this browser automatically.</p>
+      </details>
+
+      <h3>🖼️ Invite image</h3>
+      <div class="row">
+        <label class="file-button">Upload image<input type="file" id="image-input" accept="image/png,image/jpeg,image/webp" hidden></label>
+        <span class="caption">Sent as its own post, before the text.</span>
+      </div>
+      <div id="image-ui" class="stack" hidden style="margin-top:10px">
+        <img id="image-thumb" class="thumb" alt="Invite image">
+        <label><input type="checkbox" id="attach-image" checked> Attach this image</label>
+        <div class="row"><button id="download-image">⬇️ Download image</button><button id="remove-image">✕ Remove</button></div>
+        <p id="image-note" class="caption" hidden>This image is too large to keep in the browser — you'll need to upload it again next time.</p>
+      </div>
+      <p id="no-image" class="info" style="margin-top:10px">No image: invites will be text only.</p>
+    </section>
+
+    <!-- 3. Copy & send -->
+    <section class="stack">
+      <h2>📤 3. Copy &amp; send</h2>
+      <div id="savebar" class="savebar stack" hidden>
+        <div id="save-status"></div>
+        <div class="row">
+          <button id="download-updated">⬇️ Download updated list</button>
+          <label id="autosave-wrap" hidden><input type="checkbox" id="autosave"> <span id="autosave-label"></span></label>
+          <button id="download-original" class="link">Download original (backup)</button>
+        </div>
+      </div>
+      <p id="send-empty" class="info">Select guests in column 1 to start.</p>
+      <div id="send-ui" class="stack" hidden>
+        <div class="progress"><div id="progress-bar"></div></div>
+        <p id="progress-text"></p>
+        <p id="all-done" class="success" hidden>All selected guests are marked as sent 🎉</p>
+        <div class="nav">
+          <button id="prev" title="Previous guest">◀</button>
+          <select id="picker" aria-label="Guest"></select>
+          <button id="next" title="Next guest">▶</button>
+        </div>
+        <div class="card stack">
+          <div class="card-head"><strong id="card-name"></strong><span id="card-status" class="muted"></span></div>
+          <p class="muted">WhatsApp contact: <b id="card-contact"></b></p>
+          <div class="row copy-row">
+            <button id="copy-name">🔍 Copy name</button>
+            <button id="copy-image">📷 Copy image</button>
+            <button id="copy-text">📋 Copy text</button>
+          </div>
+          <p id="copy-status" class="status" aria-live="polite"></p>
+          <p id="steps" class="caption"></p>
+          <div id="card-warnings" class="stack"></div>
+          <button id="mark-sent" class="primary">✅ Mark sent &amp; next</button>
+          <button id="undo-sent" hidden>↩️ Undo mark as sent</button>
+          <div id="post-image" hidden><p class="caption">Post 1 — image</p><img id="card-image" class="thumb" alt="Invite image"></div>
+          <p class="caption" id="post-text-label">Post 2 — text</p>
+          <div id="card-preview"></div>
+          <details><summary class="caption">Raw text (manual copy)</summary><pre id="raw-text" class="raw"></pre></details>
+        </div>
+        <button id="download-all">Download all messages (.txt)</button>
+      </div>
+    </section>
+  </div>
+
+  <footer class="row">
+    <span>Your guest list, template and progress are stored only in this browser.</span>
+    <button id="clear-data" class="link">🧹 Clear saved data</button>
+  </footer>
+</div>
+<div id="toast" role="status"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="convert.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  const W = window.WaConvert;
+  const $ = (id) => document.getElementById(id);
+
+  const HEADER_ROW = 2; // Excel headers are on row 2; guests start on row 3
+  const TRUTHY = new Set(["yes", "y", "true", "1", "✓", "✔"]);
+  // Columns added up for headcounts (matched by the start of the header).
+  const COUNT_PREFIXES = ["estimated count", "adults", "kids", "children", "headcount", "pax"];
+  const NO_CATEGORY = "\u0000none";
+  const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  const KEYS = { template: "invite.template", image: "invite.image", session: "invite.session" };
+  const SAMPLE_LIST = "data/WhatsApp Invite List dummy.xlsx";
+  const SAMPLE_IMAGE = "data/WhatsApp Invite.png";
+  const DEFAULT_TEMPLATE = [
+    "*Subject: Invitation to [Event Name] 🎉*",
+    "",
+    "Dear {name},",
+    "",
+    "We are excited to invite you to [Event Name]! It would mean a lot to us to have *you and your family* with us to celebrate this special milestone.",
+    "",
+    "Please join us for [Activity/Meal].",
+    "",
+    "*Date:* [Date]",
+    "*Time:* [Time]",
+    "*Address:* [Address]",
+    "",
+    "We really hope to see you there!",
+    "",
+    "Warm regards,",
+    "",
+    "*[Host Name]*",
+    "",
+  ].join("\n");
+
+  const state = {
+    workbook: null, // ExcelJS workbook: the working copy, updated by "Mark sent"
+    bytes: null, // latest workbook bytes
+    bytesB64: null,
+    original: null, // bytes as opened, for "Download original"
+    fileName: "",
+    handle: null, // file handle when opened with the file picker (Chrome/Edge), to save back
+    autoSave: false,
+    changed: false, // the workbook has changes not yet downloaded or saved to the file
+    cols: null,
+    guests: [], // named rows: {row, name, contact, category, fields, counts, toInvite, invited}
+    byRow: new Map(),
+    available: [], // guests to invite (marked Yes, not yet invited), sheet order
+    category: "",
+    search: "",
+    selected: [], // Excel row numbers, in selection order
+    current: null,
+    sent: new Set(),
+    prev: {}, // row -> {invited, invitedOn} before "Mark sent", for Undo
+    template: "",
+    image: null, // {name, type, dataUrl, png}
+    attach: true,
+  };
+
+  // ---------------------------------------------------------------- utilities
+
+  const store = {
+    get(key) { try { return localStorage.getItem(key); } catch (e) { return null; } },
+    set(key, value) { try { localStorage.setItem(key, value); return true; } catch (e) { return false; } },
+    remove(key) { try { localStorage.removeItem(key); } catch (e) { /* storage unavailable */ } },
+  };
+
+  function el(tag, props, ...children) {
+    const node = Object.assign(document.createElement(tag), props || {});
+    for (const child of children) node.append(child);
+    return node;
+  }
+
+  function showError(message) {
+    $("error-text").textContent = message;
+    $("error").hidden = false;
+  }
+
+  let toastTimer = null;
+  function toast(message) {
+    const box = $("toast");
+    box.textContent = message;
+    box.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => box.classList.remove("show"), 2200);
+  }
+
+  function downloadBlob(data, fileName, type) {
+    const blob = data instanceof Blob ? data : new Blob([data], { type });
+    const url = URL.createObjectURL(blob);
+    const link = el("a", { href: url, download: fileName });
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function toB64(bytes) {
+    let text = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(text);
+  }
+
+  function fromB64(b64) {
+    const text = atob(b64);
+    const bytes = new Uint8Array(text.length);
+    for (let i = 0; i < text.length; i++) bytes[i] = text.charCodeAt(i);
+    return bytes;
+  }
+
+  const isDark = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const fmtNumber = (n) => (Number.isInteger(n) ? n : +n.toFixed(2)).toLocaleString();
+  const baseName = () => state.fileName.replace(/\.xlsx$/i, "") || "Guest list";
+
+  // Two-step buttons instead of confirm() dialogs.
+  function confirmClick(button, label, action) {
+    const original = button.textContent;
+    button.addEventListener("click", () => {
+      if (button.dataset.armed) {
+        delete button.dataset.armed;
+        button.textContent = original;
+        action();
+        return;
+      }
+      button.dataset.armed = "1";
+      button.textContent = label;
+      setTimeout(() => {
+        delete button.dataset.armed;
+        button.textContent = original;
+      }, 3000);
+    });
+  }
+
+  // --------------------------------------------------------- Excel cell values
+
+  // Dates in Excel have no time zone; ExcelJS returns them as UTC "wall time".
+  function formatDate(date) {
+    const day = date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+    if (!date.getUTCHours() && !date.getUTCMinutes()) return day;
+    return `${day}, ${date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" })}`;
+  }
+
+  function excelNow() {
+    const now = new Date();
+    return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes()));
+  }
+
+  function valueText(value) {
+    if (value === null || value === undefined) return "";
+    if (value instanceof Date) return formatDate(value);
+    if (typeof value === "number") return String(Number.isInteger(value) ? value : +value.toFixed(2));
+    if (typeof value === "boolean") return value ? "TRUE" : "FALSE";
+    if (typeof value === "object") {
+      if (value.richText) return value.richText.map((part) => part.text).join("");
+      if ("formula" in value || "sharedFormula" in value || "result" in value) return valueText(value.result);
+      if ("text" in value) return valueText(value.text); // hyperlink
+      return ""; // errors and anything else
+    }
+    return String(value);
+  }
+
+  function valueNumber(value) {
+    if (value && typeof value === "object" && "result" in value) value = value.result;
+    const n = typeof value === "number" ? value : parseFloat(String(value ?? "").replace(/,/g, ""));
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  const isTruthy = (text) => TRUTHY.has(String(text).trim().toLowerCase());
+
+  // ------------------------------------------------------------- the workbook
+
+  function readColumns(sheet) {
+    const all = [];
+    sheet.getRow(HEADER_ROW).eachCell((cell, col) => {
+      const header = valueText(cell.value).trim();
+      if (header) all.push({ header, key: header.toLowerCase(), col });
+    });
+    const find = (...keys) => all.find((c) => keys.includes(c.key)) || null;
+    return {
+      all,
+      name: find("addressable names"),
+      invite: find("add to invite list?"),
+      invited: find("invited?", "invited"),
+      invitedOn: find("invited on"),
+      contact: find("name"),
+      category: find("category"),
+      counts: all.filter((c) => COUNT_PREFIXES.some((prefix) => c.key.startsWith(prefix))),
+    };
+  }
+
+  function readGuests(sheet, cols) {
+    const guests = [];
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber <= HEADER_ROW) return;
+      const fields = {};
+      for (const c of cols.all) fields[c.key] = valueText(row.getCell(c.col).value).trim();
+      const name = fields[cols.name.key];
+      if (!name) return;
+      guests.push({
+        row: rowNumber,
+        name,
+        contact: (cols.contact && fields[cols.contact.key]) || name,
+        category: (cols.category && fields[cols.category.key]) || "",
+        fields,
+        counts: cols.counts.map((c) => valueNumber(row.getCell(c.col).value)),
+        toInvite: cols.invite ? isTruthy(fields[cols.invite.key]) : true,
+        invited: cols.invited ? isTruthy(fields[cols.invited.key]) : false,
+      });
+    });
+    return guests;
+  }
+
+  async function openWorkbook(bytes, fileName, { handle = null, session = null } = {}) {
+    if (!window.ExcelJS) throw new Error("the Excel library couldn't load — check the internet connection and reload");
+    const workbook = new window.ExcelJS.Workbook();
+    await workbook.xlsx.load(bytes);
+    const sheet = workbook.worksheets[0];
+    if (!sheet) throw new Error("the workbook has no sheets");
+    const cols = readColumns(sheet);
+    if (!cols.name) {
+      throw new Error("column 'Addressable Names' wasn't found in row 2. Download the blank template to see the expected layout");
+    }
+    const guests = readGuests(sheet, cols);
+    const sent = new Set(session ? session.sent : []);
+    const byRow = new Map(guests.map((g) => [g.row, g]));
+    Object.assign(state, {
+      workbook, cols, guests, byRow, fileName, handle,
+      autoSave: false,
+      changed: Boolean(session && session.changed),
+      bytes: new Uint8Array(bytes),
+      bytesB64: null,
+      original: session ? (session.original ? fromB64(session.original) : null) : new Uint8Array(bytes),
+      // Guests marked sent this session stay in the list even though the sheet now says "Yes".
+      available: guests.filter((g) => g.toInvite && (!g.invited || sent.has(g.row))),
+      sent,
+      selected: session ? session.selected.filter((r) => byRow.has(r)) : [],
+      current: session ? session.current : null,
+      prev: session ? restorePrev(session.prev) : {},
+      category: (session && session.category) || "",
+      search: "",
+    });
+    $("search").value = "";
+    $("autosave").checked = false;
+    $("error").hidden = true;
+    $("resume").hidden = true;
+    fillInsertField();
+    renderAll();
+    saveSession();
+  }
+
+  // Adds a header (styled like "Addressable Names") in the next free column.
+  function ensureColumn(kind, title) {
+    if (state.cols[kind]) return state.cols[kind].col;
+    const sheet = state.workbook.worksheets[0];
+    const col = sheet.columnCount + 1;
+    const header = sheet.getRow(HEADER_ROW).getCell(col);
+    header.value = title;
+    header.style = JSON.parse(JSON.stringify(sheet.getRow(HEADER_ROW).getCell(state.cols.name.col).style || {}));
+    sheet.getColumn(col).width = Math.max(12, title.length + 6);
+    state.cols[kind] = { header: title, key: title.toLowerCase(), col };
+    return col;
+  }
+
+  function invitedOnText(row) {
+    if (!state.cols.invitedOn) return "";
+    return valueText(state.workbook.worksheets[0].getCell(row, state.cols.invitedOn.col).value);
+  }
+
+  async function setSent(row, sent) {
+    const sheet = state.workbook.worksheets[0];
+    const invited = sheet.getCell(row, ensureColumn("invited", "Invited?"));
+    const invitedOn = sheet.getCell(row, ensureColumn("invitedOn", "Invited On"));
+    if (sent) {
+      if (!(row in state.prev)) state.prev[row] = { invited: invited.value ?? null, invitedOn: invitedOn.value ?? null };
+      invited.value = "Yes";
+      invitedOn.value = excelNow();
+      invitedOn.numFmt = "dd mmm yyyy, hh:mm";
+      state.sent.add(row);
+      toast(`Marked ${state.byRow.get(row).name} as sent`);
+      // Move on to the next guest (in selection order) who hasn't been sent yet.
+      const pos = state.selected.indexOf(row);
+      const upcoming = [...state.selected.slice(pos + 1), ...state.selected.slice(0, pos)];
+      const next = upcoming.find((r) => !state.sent.has(r));
+      if (next !== undefined) state.current = next;
+    } else {
+      const before = state.prev[row] || { invited: null, invitedOn: null };
+      invited.value = before.invited;
+      invitedOn.value = before.invitedOn;
+      delete state.prev[row];
+      state.sent.delete(row);
+    }
+    renderMessages();
+    renderSaveBar();
+    await saveWorkbook();
+  }
+
+  // Serialized so two quick clicks can't write the file at the same time.
+  let saving = Promise.resolve();
+  function saveWorkbook() {
+    saving = saving
+      .then(async () => {
+        const buffer = await state.workbook.xlsx.writeBuffer();
+        state.bytes = new Uint8Array(buffer);
+        state.bytesB64 = null;
+        state.changed = true;
+        if (state.handle && state.autoSave) {
+          try {
+            const writable = await state.handle.createWritable();
+            await writable.write(buffer);
+            await writable.close();
+            state.changed = false;
+          } catch (err) {
+            state.autoSave = false;
+            $("autosave").checked = false;
+            showError(`Couldn't save into ${state.fileName} (${err.message}). Use "Download updated list" instead.`);
+          }
+        }
+        saveSession();
+        renderSaveBar();
+      })
+      .catch((err) => showError(`Couldn't update the guest list: ${err.message}`));
+    return saving;
+  }
+
+  async function blankTemplate() {
+    const workbook = new window.ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Invite List", { views: [{ state: "frozen", ySplit: HEADER_ROW }] });
+    const columns = [
+      ["Name", 22], ["Category", 14], ["Addressable Names", 24], ["Estimated Count", 15], ["Adults", 9],
+      ["Kids (Below 8)", 15], ["Add to Invite List?", 19], ["Invited?", 11], ["Invited On", 19], ["Notes", 30],
+    ];
+    sheet.getCell("A1").value = "Add guests from row 3 · keep the headers in row 2";
+    sheet.getCell("A1").font = { italic: true, color: { argb: "FF666666" } };
+    columns.forEach(([title, width], i) => {
+      const cell = sheet.getCell(HEADER_ROW, i + 1);
+      cell.value = title;
+      cell.font = { bold: true };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9EAD3" } };
+      sheet.getColumn(i + 1).width = width;
+    });
+    const letter = (title) => String.fromCharCode(65 + columns.findIndex(([t]) => t === title));
+    for (const title of ["Estimated Count", "Adults", "Kids (Below 8)"]) {
+      const c = letter(title);
+      sheet.getCell(`${c}1`).value = { formula: `SUBTOTAL(9,${c}3:${c}1000)` };
+    }
+    const yesNo = { type: "list", allowBlank: true, formulae: ['"Yes,No"'] };
+    for (const title of ["Add to Invite List?", "Invited?"]) {
+      const c = letter(title);
+      sheet.getCell(`${c}1`).value = { formula: `COUNTIF(${c}3:${c}1000,"Yes")` };
+      if (sheet.dataValidations && sheet.dataValidations.add) {
+        sheet.dataValidations.add(`${c}3:${c}1000`, yesNo);
+      } else {
+        for (let r = 3; r <= 1000; r++) sheet.getCell(`${c}${r}`).dataValidation = yesNo;
+      }
+    }
+    const help = workbook.addWorksheet("How to use");
+    [
+      "How to fill in this guest list",
+      "",
+      "1. Add one guest (or family) per row, starting at row 3. Keep the headers in row 2 exactly as they are.",
+      '2. Addressable Names (required): how the invite greets them, e.g. "Ravi & Priya". It is {name} in the message.',
+      "3. Name: the contact's name as saved in WhatsApp - the app's \"Copy name\" button copies it for WhatsApp search.",
+      "4. Add to Invite List? (required): choose Yes to include the guest.",
+      '5. Invited? and Invited On: leave blank - the app fills them in when you click "Mark sent".',
+      "6. Category: optional, e.g. Family / Friends / Work - the app can show one category at a time.",
+      "7. Estimated Count / Adults / Kids: added up in the app for headcounts.",
+      "8. Any column can be used in the message as {Column name}, e.g. {Adults} - add your own columns if you like.",
+      '9. Keep "Invite List" as the first sheet, save as .xlsx and open it in the app.',
+    ].forEach((line, i) => (help.getCell(i + 1, 1).value = line));
+    help.getCell("A1").font = { bold: true, size: 13 };
+    help.getColumn(1).width = 110;
+    return workbook.xlsx.writeBuffer();
+  }
+
+  // ------------------------------------------------------------- persistence
+
+  function serializePrev(prev) {
+    const out = {};
+    for (const [row, values] of Object.entries(prev)) {
+      out[row] = {};
+      for (const [k, v] of Object.entries(values)) out[row][k] = v instanceof Date ? { date: v.toISOString() } : v;
+    }
+    return out;
+  }
+
+  function restorePrev(prev) {
+    const out = {};
+    for (const [row, values] of Object.entries(prev || {})) {
+      out[row] = {};
+      for (const [k, v] of Object.entries(values)) out[row][k] = v && v.date ? new Date(v.date) : v;
+    }
+    return out;
+  }
+
+  let sessionTimer = null;
+  function saveSession() {
+    clearTimeout(sessionTimer);
+    sessionTimer = setTimeout(() => {
+      if (!state.workbook) return;
+      if (!state.bytesB64) state.bytesB64 = toB64(state.bytes);
+      const session = {
+        fileName: state.fileName,
+        workbook: state.bytesB64,
+        original: state.original && state.original.length < 1.5e6 ? toB64(state.original) : null,
+        selected: state.selected,
+        current: state.current,
+        sent: [...state.sent],
+        prev: serializePrev(state.prev),
+        category: state.category,
+        changed: state.changed,
+        savedAt: Date.now(),
+      };
+      if (!store.set(KEYS.session, JSON.stringify(session))) {
+        session.original = null;
+        if (!store.set(KEYS.session, JSON.stringify(session))) {
+          showError("This guest list is too large to keep in the browser — download the updated list before you close the page.");
+        }
+      }
+    }, 300);
+  }
+
+  function offerResume() {
+    let session;
+    try {
+      session = JSON.parse(store.get(KEYS.session) || "null");
+    } catch (e) {
+      session = null;
+    }
+    if (!session || !session.workbook) return;
+    const minutes = Math.round((Date.now() - session.savedAt) / 60000);
+    const when = minutes < 1 ? "just now" : minutes < 90 ? `${minutes} min ago` : new Date(session.savedAt).toLocaleString();
+    const done = session.sent.filter((r) => session.selected.includes(r)).length;
+    $("resume-text").textContent =
+      `Resume “${session.fileName}” — ${done} of ${session.selected.length} selected guests sent (saved ${when}).`;
+    $("resume").hidden = false;
+    $("resume-yes").onclick = async () => {
+      try {
+        await openWorkbook(fromB64(session.workbook), session.fileName, { session });
+      } catch (err) {
+        showError(`Couldn't resume: ${err.message}`);
+      }
+    };
+    $("resume-no").onclick = () => {
+      store.remove(KEYS.session);
+      $("resume").hidden = true;
+    };
+  }
+
+  // ------------------------------------------------------------------- image
+
+  function readDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  // Browsers can only put PNG on the clipboard; also caps the size.
+  async function toPng(blob) {
+    const bitmap = await createImageBitmap(blob);
+    const scale = Math.min(1, 2048 / Math.max(bitmap.width, bitmap.height));
+    const canvas = el("canvas", { width: Math.round(bitmap.width * scale), height: Math.round(bitmap.height * scale) });
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    return new Promise((resolve, reject) =>
+      canvas.toBlob((png) => (png ? resolve(png) : reject(new Error("couldn't convert the image"))), "image/png"));
+  }
+
+  async function setImage(blob, name, { persist = true } = {}) {
+    try {
+      const [dataUrl, png] = await Promise.all([readDataUrl(blob), toPng(blob)]);
+      state.image = { name: name || "invite.png", type: blob.type || "image/png", dataUrl, png };
+      state.attach = true;
+      $("attach-image").checked = true;
+      let kept = true;
+      if (persist) {
+        kept = dataUrl.length < 3.5e6 &&
+          store.set(KEYS.image, JSON.stringify({ name: state.image.name, type: state.image.type, dataUrl }));
+        if (!kept) store.remove(KEYS.image);
+      }
+      $("image-note").hidden = kept;
+    } catch (err) {
+      showError(`Couldn't read the image: ${err.message}`);
+    }
+    renderAll();
+  }
+
+  // ------------------------------------------------------------------ editor
+
+  let quill = null;
+  let plain = null;
+  let editTimer = null;
+
+  function editorText() {
+    return quill ? W.deltaToMarkup(quill.getContents()) : plain.value;
+  }
+
+  function loadEditor(text) {
+    if (quill) {
+      quill.setContents(quill.clipboard.convert({ html: W.markupToHtml(text) }), "silent");
+      quill.history.clear();
+    } else {
+      plain.value = text;
+    }
+  }
+
+  // Applies pending edits now (e.g. right before copying the text).
+  function flushEdit() {
+    if (editTimer === null) return;
+    clearTimeout(editTimer);
+    editTimer = null;
+    const text = editorText();
+    if (text !== state.template) setTemplate(text);
+  }
+
+  function onEdit() {
+    clearTimeout(editTimer);
+    editTimer = setTimeout(() => {
+      editTimer = 0;
+      flushEdit();
+    }, 150);
+  }
+
+  function setTemplate(text, { reloadEditor = false } = {}) {
+    state.template = text;
+    store.set(KEYS.template, text);
+    if (reloadEditor) loadEditor(text);
+    renderMessages();
+  }
+
+  function insertAtCursor(text) {
+    if (quill) {
+      const range = quill.getSelection(true);
+      quill.insertText(range.index, text, "user");
+      quill.setSelection(range.index + text.length, 0, "user");
+    } else {
+      plain.setRangeText(text, plain.selectionStart, plain.selectionEnd, "end");
+      plain.focus();
+      onEdit();
+    }
+  }
+
+  function setupEditor() {
+    if (!window.Quill) {
+      plain = $("plain");
+      plain.hidden = false;
+      $("editor").hidden = true;
+      $("toolbar").hidden = true;
+      plain.addEventListener("input", onEdit);
+      showError("The formatting editor couldn't load (are you offline?). Edit the WhatsApp text directly: *bold*, _italic_, ~strikethrough~.");
+      return;
+    }
+    const Delta = window.Quill.import("delta");
+    quill = new window.Quill("#editor", {
+      theme: "snow",
+      // Only what WhatsApp can show - anything else is dropped, also when pasting.
+      formats: ["bold", "italic", "strike", "code", "list", "blockquote"],
+      placeholder: "Write the invitation here. Use “Insert field” for the guest's name.",
+      modules: {
+        toolbar: "#toolbar",
+        keyboard: {
+          bindings: {
+            strike: {
+              key: ["x", "X"],
+              shortKey: true,
+              shiftKey: true,
+              handler(range, context) {
+                this.quill.format("strike", !context.format.strike, "user");
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // WhatsApp has no links: keep a pasted link's address as visible text.
+    quill.clipboard.addMatcher("A", (node, delta) => {
+      const href = node.getAttribute("href") || "";
+      if (/^https?:\/\//i.test(href) && !node.textContent.includes(href)) {
+        return delta.concat(new Delta().insert(` (${href})`));
+      }
+      return delta;
+    });
+
+    // Plain text that already uses WhatsApp formatting (e.g. copied from a chat)
+    // is pasted as formatted text, not as asterisks.
+    quill.root.addEventListener("paste", (event) => {
+      const data = event.clipboardData;
+      if (!data || Array.from(data.types).includes("text/html")) return;
+      const text = data.getData("text/plain");
+      if (!W.looksLikeMarkup(text)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const range = quill.getSelection(true);
+      const pasted = quill.clipboard.convert({ html: W.markupToHtml(text) });
+      quill.updateContents(new Delta().retain(range.index).delete(range.length).concat(pasted), "user");
+      quill.setSelection(range.index + pasted.length(), 0, "silent");
+    }, true);
+
+    quill.on("text-change", (delta, oldDelta, source) => {
+      if (source === "user") onEdit();
+    });
+  }
+
+  function fillInsertField() {
+    const select = $("insert-field");
+    select.replaceChildren(
+      el("option", { value: "", textContent: "+ Insert field…" }),
+      el("option", { value: "{name}", textContent: "{name} — greeting (Addressable Names)" })
+    );
+    if (!state.cols) return;
+    const skip = new Set([state.cols.name, state.cols.invite, state.cols.invited, state.cols.invitedOn].filter(Boolean).map((c) => c.key));
+    for (const c of state.cols.all) {
+      if (!skip.has(c.key)) select.append(el("option", { value: `{${c.header}}`, textContent: `{${c.header}}` }));
+    }
+  }
+
+  // ------------------------------------------------------------------ copying
+
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (err) {
+      // Fallback for browsers that block the async Clipboard API.
+      const area = el("textarea", { value: text });
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.append(area);
+      area.select();
+      const copied = document.execCommand("copy");
+      area.remove();
+      return copied;
+    }
+  }
+
+  function copyStatus(message, ok) {
+    const status = $("copy-status");
+    status.textContent = message;
+    status.className = `status ${ok ? "ok" : "err"}`;
+  }
+
+  // ---------------------------------------------------------------- rendering
+
+  function guestLabel(guest) {
+    const dupes = state.available.filter((g) => g.name === guest.name).length > 1;
+    return dupes ? `${guest.name} · row ${guest.row}` : guest.name;
+  }
+
+  function visibleGuests() {
+    const query = state.search.trim().toLowerCase();
+    return state.available.filter((g) => {
+      if (state.category === NO_CATEGORY ? g.category : state.category && g.category !== state.category) return false;
+      return !query || g.name.toLowerCase().includes(query) || g.contact.toLowerCase().includes(query);
+    });
+  }
+
+  function headcount(rows) {
+    if (!state.cols || !state.cols.counts.length) return "";
+    const sums = state.cols.counts.map(() => 0);
+    for (const row of rows) state.byRow.get(row).counts.forEach((n, i) => (sums[i] += n));
+    return state.cols.counts.map((c, i) => `${c.header}: ${fmtNumber(sums[i])}`).join(" · ");
+  }
+
+  function renderGuests() {
+    const loaded = Boolean(state.workbook);
+    $("guests-empty").hidden = loaded;
+    $("guests-ui").hidden = !loaded;
+    $("file-name").textContent = loaded ? `📄 ${state.fileName}` : "";
+    if (!loaded) return;
+
+    const marked = state.guests.filter((g) => g.toInvite);
+    const already = marked.filter((g) => g.invited && !state.sent.has(g.row)).length;
+    $("breakdown").textContent =
+      `Marked to invite: ${marked.length} · Already invited: ${already} · Available: ${state.available.length}`;
+
+    const notes = [];
+    if (!state.cols.invite) notes.push("No 'Add to Invite List?' column — showing everyone.");
+    if (!state.cols.invited) notes.push("No 'Invited?' column — it will be added when you mark a guest as sent.");
+    $("column-notes").textContent = notes.join(" ");
+    $("column-notes").hidden = !notes.length;
+
+    // Category filter
+    const counts = new Map();
+    for (const g of state.available) counts.set(g.category || NO_CATEGORY, (counts.get(g.category || NO_CATEGORY) || 0) + 1);
+    const category = $("category");
+    category.hidden = !state.cols.category;
+    category.replaceChildren(el("option", { value: "", textContent: `All categories (${state.available.length})` }));
+    const last = ([value]) => (value === NO_CATEGORY ? 1 : 0); // "(no category)" goes last
+    for (const [value, n] of [...counts].sort((a, b) => last(a) - last(b) || a[0].localeCompare(b[0]))) {
+      category.append(el("option", { value, textContent: `${value === NO_CATEGORY ? "(no category)" : value} (${n})` }));
+    }
+    if (state.category && !counts.has(state.category)) state.category = "";
+    category.value = state.category;
+
+    // Guest checklist
+    const list = $("guest-list");
+    const selected = new Set(state.selected);
+    const visible = visibleGuests();
+    list.replaceChildren(
+      ...visible.map((g) => {
+        const box = el("input", { type: "checkbox", checked: selected.has(g.row) });
+        box.addEventListener("change", () => toggleGuest(g.row, box.checked));
+        const who = el("span", { className: "who" }, el("span", { textContent: guestLabel(g) }));
+        const sub = [g.contact !== g.name ? g.contact : "", state.cols.category && !state.category ? g.category : ""].filter(Boolean);
+        if (sub.length) who.append(el("span", { className: "sub", textContent: sub.join(" · ") }));
+        return el("label", {}, box, who);
+      })
+    );
+    if (!visible.length) list.append(el("p", { className: "muted", textContent: "No guests match.", style: "padding:8px 10px;margin:0" }));
+
+    renderSummary();
+  }
+
+  function renderSummary() {
+    const totals = headcount(state.selected);
+    $("selected-summary").textContent =
+      `Selected: ${state.selected.length} invite${state.selected.length === 1 ? "" : "s"}${totals ? ` · ${totals}` : ""}`;
+  }
+
+  function renderTemplateWarnings() {
+    const box = $("template-warnings");
+    box.replaceChildren();
+    const keys = state.cols ? state.cols.all.map((c) => c.key) : [];
+    const issues = W.templateIssues(state.template, keys);
+    if (issues.brackets.length) {
+      box.append(el("p", { className: "warn", textContent: `⚠️ Still to fill in: ${issues.brackets.join(", ")}` }));
+    }
+    if (state.cols && issues.unknown.length) {
+      box.append(el("p", { className: "warn", textContent: `⚠️ No column called ${issues.unknown.join(", ")} — it will be sent as typed.` }));
+    }
+    if (issues.missingName) {
+      box.append(el("p", { className: "warn", textContent: "⚠️ No {name} in the message, so every guest gets the same greeting." }));
+    }
+  }
+
+  function renderMessages() {
+    renderTemplateWarnings();
+    const first = state.selected.length ? state.byRow.get(state.selected[0]) : null;
+    const sample = first || { name: "Guest Name", fields: {} };
+    $("preview-label").textContent = `Preview for ${sample.name}:`;
+    $("preview").innerHTML = W.whatsappPreviewHtml(W.renderMessage(state.template, sample), isDark());
+    renderCard();
+  }
+
+  function renderImage() {
+    const has = Boolean(state.image);
+    $("image-ui").hidden = !has;
+    $("no-image").hidden = has && state.attach;
+    if (has) $("image-thumb").src = state.image.dataUrl;
+    $("no-image").textContent = has ? "Image not attached: invites will be text only." : "No image: invites will be text only.";
+  }
+
+  function renderSaveBar() {
+    $("savebar").hidden = !state.workbook;
+    if (!state.workbook) return;
+    const canSave = Boolean(state.handle && window.showOpenFilePicker);
+    $("autosave-wrap").hidden = !canSave;
+    $("autosave-label").textContent = `Save changes into ${state.fileName}`;
+    $("download-original").hidden = !state.original;
+    let status;
+    if (state.autoSave) status = `💾 Changes are saved into ${state.fileName} automatically.`;
+    else if (state.changed) status = "Changes are kept in this browser — download the updated list to keep them in Excel.";
+    else status = "No changes yet. Marking guests as sent fills in Invited? and Invited On.";
+    $("save-status").textContent = status;
+    $("download-updated").classList.toggle("primary", state.changed && !state.autoSave);
+  }
+
+  function renderCard() {
+    const has = state.selected.length > 0;
+    $("send-empty").hidden = has;
+    $("send-ui").hidden = !has;
+    if (!has) return;
+
+    if (!state.selected.includes(state.current)) {
+      state.current = state.selected.find((r) => !state.sent.has(r)) ?? state.selected[0];
+    }
+    const sentCount = state.selected.filter((r) => state.sent.has(r)).length;
+    $("progress-bar").style.width = `${(100 * sentCount) / state.selected.length}%`;
+    const sentTotals = headcount(state.selected.filter((r) => state.sent.has(r)));
+    $("progress-text").textContent = `${sentCount} of ${state.selected.length} sent${sentTotals ? ` · ${sentTotals}` : ""}`;
+    $("all-done").hidden = sentCount !== state.selected.length;
+
+    const picker = $("picker");
+    picker.replaceChildren(
+      ...state.selected.map((row) =>
+        el("option", { value: String(row), textContent: `${state.sent.has(row) ? "✅" : "⏳"} ${guestLabel(state.byRow.get(row))}` }))
+    );
+    picker.value = String(state.current);
+    const pos = state.selected.indexOf(state.current);
+    $("prev").disabled = pos <= 0;
+    $("next").disabled = pos >= state.selected.length - 1;
+
+    const guest = state.byRow.get(state.current);
+    const message = W.renderMessage(state.template, guest);
+    const isSent = state.sent.has(guest.row);
+    const withImage = Boolean(state.image && state.attach);
+    $("card-name").textContent = guest.name;
+    const sentAt = isSent ? invitedOnText(guest.row) : "";
+    $("card-status").textContent = isSent ? `✅ sent${sentAt ? ` ${sentAt}` : ""}` : "";
+    $("card-contact").textContent = guest.contact;
+    $("copy-image").hidden = !withImage;
+    $("steps").textContent = withImage
+      ? "Search WhatsApp for the contact and open the chat, then: 📷 Copy image → paste (⌘V / Ctrl+V) → send, 📋 Copy text → paste → send."
+      : "Search WhatsApp for the contact and open the chat, then: 📋 Copy text → paste (⌘V / Ctrl+V) → send.";
+    $("mark-sent").hidden = isSent;
+    $("undo-sent").hidden = !isSent;
+    $("post-image").hidden = !withImage;
+    $("post-text-label").hidden = !withImage;
+    if (withImage) $("card-image").src = state.image.dataUrl;
+    $("card-preview").innerHTML = W.whatsappPreviewHtml(message, isDark());
+    $("raw-text").textContent = message;
+
+    const warnings = $("card-warnings");
+    warnings.replaceChildren();
+    const issues = W.templateIssues(state.template, state.cols.all.map((c) => c.key));
+    const empty = W.emptyFields(state.template, guest);
+    const problems = [];
+    if (issues.brackets.length) problems.push(`still to fill in: ${issues.brackets.join(", ")}`);
+    if (empty.length) problems.push(`${empty.join(", ")} ${empty.length === 1 ? "is" : "are"} empty for ${guest.name}`);
+    if (problems.length) warnings.append(el("p", { className: "warn", textContent: `⚠️ Message ${problems.join("; ")}.` }));
+  }
+
+  function renderAll() {
+    renderGuests();
+    renderImage();
+    renderSaveBar();
+    renderMessages();
+    saveSession();
+  }
+
+  // ------------------------------------------------------------------ actions
+
+  // Ticking a box leaves the checklist as it is (keeps focus and scroll position).
+  function toggleGuest(row, on) {
+    state.selected = on ? [...state.selected.filter((r) => r !== row), row] : state.selected.filter((r) => r !== row);
+    renderSummary();
+    renderMessages();
+    saveSession();
+  }
+
+  async function loadFile(file, handle) {
+    try {
+      await openWorkbook(await file.arrayBuffer(), file.name, { handle });
+    } catch (err) {
+      showError(`Couldn't open ${file.name}: ${err.message}`);
+    }
+  }
+
+  $("open-list").addEventListener("click", async () => {
+    if (!window.showOpenFilePicker) {
+      $("list-input").click();
+      return;
+    }
+    let handle;
+    try {
+      [handle] = await window.showOpenFilePicker({ types: [{ description: "Excel workbook", accept: { [XLSX_TYPE]: [".xlsx"] } }] });
+    } catch (err) {
+      if (err.name !== "AbortError") showError(err.message);
+      return;
+    }
+    await loadFile(await handle.getFile(), handle);
+  });
+
+  $("list-input").addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    event.target.value = "";
+    if (file) loadFile(file, null);
+  });
+
+  $("download-blank").addEventListener("click", async () => {
+    try {
+      downloadBlob(await blankTemplate(), "Guest List Template.xlsx", XLSX_TYPE);
+    } catch (err) {
+      showError(`Couldn't create the template: ${err.message}`);
+    }
+  });
+
+  if (location.protocol.startsWith("http")) $("try-sample").hidden = false;
+  $("try-sample").addEventListener("click", async () => {
+    try {
+      const list = await fetch(encodeURI(SAMPLE_LIST));
+      if (!list.ok) throw new Error(`HTTP ${list.status}`);
+      await openWorkbook(await list.arrayBuffer(), "WhatsApp Invite List dummy.xlsx");
+      if (!state.image) {
+        const image = await fetch(encodeURI(SAMPLE_IMAGE));
+        if (image.ok) await setImage(await image.blob(), "WhatsApp Invite.png");
+      }
+    } catch (err) {
+      showError(`Couldn't load the sample data: ${err.message}`);
+    }
+  });
+
+  $("error-close").addEventListener("click", () => ($("error").hidden = true));
+
+  $("category").addEventListener("change", (event) => {
+    state.category = event.target.value;
+    renderAll();
+  });
+
+  $("search").addEventListener("input", (event) => {
+    state.search = event.target.value;
+    renderGuests();
+  });
+
+  $("select-visible").addEventListener("click", () => {
+    const chosen = new Set(state.selected);
+    state.selected = [...state.selected, ...visibleGuests().map((g) => g.row).filter((r) => !chosen.has(r))];
+    renderAll();
+  });
+
+  $("clear-selection").addEventListener("click", () => {
+    state.selected = [];
+    renderAll();
+  });
+
+  $("insert-field").addEventListener("change", (event) => {
+    const token = event.target.value;
+    event.target.value = "";
+    if (token) insertAtCursor(token);
+  });
+
+  $("template-input").addEventListener("change", async (event) => {
+    const file = event.target.files[0];
+    event.target.value = "";
+    if (!file) return;
+    const text = (await file.text()).replace(/^﻿/, "").replace(/\r\n?/g, "\n");
+    setTemplate(text, { reloadEditor: true });
+    toast("Template loaded");
+  });
+
+  $("download-template").addEventListener("click", () => {
+    flushEdit();
+    downloadBlob(state.template, "invitation_template.txt", "text/plain;charset=utf-8");
+  });
+
+  confirmClick($("reset-template"), "Click again to replace your text", () => {
+    setTemplate(DEFAULT_TEMPLATE, { reloadEditor: true });
+  });
+
+  $("image-input").addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    event.target.value = "";
+    if (file) setImage(file, file.name);
+  });
+
+  $("attach-image").addEventListener("change", (event) => {
+    state.attach = event.target.checked;
+    renderAll();
+  });
+
+  $("download-image").addEventListener("click", async () => {
+    downloadBlob(await (await fetch(state.image.dataUrl)).blob(), state.image.name);
+  });
+
+  $("remove-image").addEventListener("click", () => {
+    state.image = null;
+    store.remove(KEYS.image);
+    renderAll();
+  });
+
+  $("picker").addEventListener("change", (event) => {
+    state.current = Number(event.target.value);
+    $("copy-status").textContent = "";
+    renderMessages();
+    saveSession();
+  });
+
+  $("prev").addEventListener("click", () => {
+    state.current = state.selected[state.selected.indexOf(state.current) - 1];
+    $("copy-status").textContent = "";
+    renderMessages();
+    saveSession();
+  });
+
+  $("next").addEventListener("click", () => {
+    state.current = state.selected[state.selected.indexOf(state.current) + 1];
+    $("copy-status").textContent = "";
+    renderMessages();
+    saveSession();
+  });
+
+  $("copy-name").addEventListener("click", async () => {
+    const name = state.byRow.get(state.current).contact;
+    const ok = await copyText(name);
+    copyStatus(ok ? `Name copied ✓ — paste it into WhatsApp's search to open the chat.` : "Couldn't copy the name.", ok);
+  });
+
+  $("copy-image").addEventListener("click", async () => {
+    try {
+      // The item is built straight away, as Safari requires.
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": state.image.png })]);
+      copyStatus("Image copied ✓ — paste it into the chat (⌘V / Ctrl+V), send it, then copy the text.", true);
+    } catch (err) {
+      copyStatus(`Couldn't copy the image in this browser (${err.name}) — use "Download image" and drag it into WhatsApp.`, false);
+    }
+  });
+
+  $("copy-text").addEventListener("click", async () => {
+    flushEdit(); // copy what's in the editor right now, even mid-typing
+    const ok = await copyText(W.renderMessage(state.template, state.byRow.get(state.current)));
+    copyStatus(ok ? "Text copied ✓ — paste it into the chat (⌘V / Ctrl+V) and send." : "Couldn't copy — use “Raw text” below.", ok);
+  });
+
+  $("mark-sent").addEventListener("click", () => {
+    $("copy-status").textContent = "";
+    setSent(state.current, true);
+  });
+
+  $("undo-sent").addEventListener("click", () => setSent(state.current, false));
+
+  $("download-all").addEventListener("click", () => {
+    flushEdit();
+    const text = state.selected
+      .map((row) => {
+        const guest = state.byRow.get(row);
+        return `--- MESSAGE FOR: ${guest.name} ---\n${W.renderMessage(state.template, guest)}\n${"-".repeat(40)}\n`;
+      })
+      .join("\n");
+    downloadBlob(text, "invitation_messages.txt", "text/plain;charset=utf-8");
+  });
+
+  $("download-updated").addEventListener("click", () => {
+    downloadBlob(state.bytes, `${baseName()} - updated.xlsx`, XLSX_TYPE);
+    if (!state.autoSave) {
+      state.changed = false;
+      renderSaveBar();
+      saveSession();
+    }
+  });
+
+  $("download-original").addEventListener("click", () => {
+    downloadBlob(state.original, `${baseName()} - original.xlsx`, XLSX_TYPE);
+  });
+
+  $("autosave").addEventListener("change", async (event) => {
+    if (!event.target.checked) {
+      state.autoSave = false;
+      renderSaveBar();
+      return;
+    }
+    try {
+      if ((await state.handle.requestPermission({ mode: "readwrite" })) !== "granted") {
+        throw new Error("permission wasn't given");
+      }
+      state.autoSave = true;
+      await saveWorkbook(); // write what's been marked so far
+    } catch (err) {
+      event.target.checked = false;
+      state.autoSave = false;
+      showError(`Can't save into ${state.fileName}: ${err.message}`);
+    }
+    renderSaveBar();
+  });
+
+  confirmClick($("clear-data"), "Click again to clear everything", () => {
+    Object.values(KEYS).forEach((key) => store.remove(key));
+    location.reload();
+  });
+
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderMessages);
+
+  // ------------------------------------------------------------------ start-up
+
+  setupEditor();
+  state.template = store.get(KEYS.template) ?? DEFAULT_TEMPLATE;
+  loadEditor(state.template);
+  fillInsertField();
+  renderAll();
+  offerResume();
+  if (!window.ExcelJS) showError("The Excel library couldn't load — check the internet connection and reload the page.");
+
+  try {
+    const saved = JSON.parse(store.get(KEYS.image) || "null");
+    if (saved) fetch(saved.dataUrl).then((r) => r.blob()).then((blob) => setImage(blob, saved.name, { persist: false }));
+  } catch (e) {
+    store.remove(KEYS.image);
+  }
+})();
+</script>
+</body>
+</html>

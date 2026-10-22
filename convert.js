@@ -1,9 +1,10 @@
-/* Conversions between WhatsApp text formatting and the rich-text editor (Quill).
+/* WhatsApp text helpers: conversions to and from the rich-text editor (Quill),
+ * the WhatsApp-style preview, and filling in a guest's message.
  *
  * The template is stored as WhatsApp text (*bold* _italic_ ~strike~ ```mono```),
  * so it is copied, previewed and saved exactly as WhatsApp needs it; the editor
- * only displays it as rich text. Used by editor.js in the browser and loadable
- * from Node for quick checks.
+ * only displays it as rich text. Used by index.html (window.WaConvert) and
+ * loadable from Node for the tests in tests/convert.test.js.
  */
 (function (root) {
   "use strict";
@@ -187,7 +188,96 @@
       .join("\n");
   }
 
-  const api = { markupToHtml, deltaToMarkup, looksLikeMarkup };
+  // --- WhatsApp text -> preview bubble ------------------------------------------
+
+  // Shows a message the way WhatsApp displays it: the text keeps its markers'
+  // effect but lines, list dashes and spacing stay exactly as they'll be sent.
+  function whatsappPreviewHtml(text, dark) {
+    const [bubble, fg, shade] = dark
+      ? ["#005c4b", "#e9edef", "rgba(255,255,255,.12)"]
+      : ["#d9fdd3", "#111b21", "rgba(0,0,0,.07)"];
+    const codeCss =
+      "font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;" +
+      `background:${shade};border-radius:3px;padding:0 3px`;
+    const quoteCss = `border-left:3px solid ${shade};padding-left:8px;opacity:.85`;
+
+    const stash = [];
+    const park = (_, code) => {
+      stash.push(`<code style="${codeCss}">${code}</code>`);
+      return `\u0000${stash.length - 1}\u0000`;
+    };
+    let html = escapeHtml(String(text || ""))
+      .replace(/```([\s\S]+?)```/g, park)
+      .replace(/`([^`\n]+)`/g, park);
+    for (const [marker, tag] of [["*", "b"], ["_", "i"], ["~", "s"]]) {
+      html = html.replace(stylePattern(marker, "gu"), `<${tag}>$1</${tag}>`);
+    }
+    html = html
+      .split("\n")
+      .map((line) => (line.startsWith("&gt; ") ? `<span style="${quoteCss}">${line.slice(5)}</span>` : line))
+      .join("\n")
+      .replace(/\u0000(\d+)\u0000/g, (_, i) => stash[Number(i)]);
+
+    return (
+      `<div style="background:${bubble};color:${fg};border-radius:8px;padding:8px 12px;` +
+      "white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.45;" +
+      "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;" +
+      `box-shadow:0 1px 1px rgba(0,0,0,.13)">${html}</div>`
+    );
+  }
+
+  // --- A guest's message ---------------------------------------------------------
+
+  const PLACEHOLDER = /\{([^{}\n]+)\}/g;
+
+  // {name} is the greeting (Addressable Names); {Any Column} is that column's
+  // value for the guest (case-insensitive). Unknown placeholders stay as typed.
+  // guest: { name, fields: { "<lower-case header>": "text" } }
+  function renderMessage(template, guest) {
+    const fields = (guest && guest.fields) || {};
+    return String(template || "")
+      .replace(/\*\*/g, "*") // legacy Markdown bold -> WhatsApp bold
+      .replace(PLACEHOLDER, (match, key) => {
+        if (key === "name") return guest ? guest.name : match;
+        const value = fields[key.trim().toLowerCase()];
+        return value === undefined ? match : value;
+      });
+  }
+
+  function placeholderKeys(template) {
+    return [...new Set([...String(template || "").matchAll(PLACEHOLDER)].map((m) => m[1]))];
+  }
+
+  // Things to fix before sending: [Event Name]-style blanks left in the text,
+  // {Placeholders} with no matching column, and no {name} at all.
+  function templateIssues(template, columnKeys) {
+    const text = String(template || "");
+    return {
+      brackets: [...new Set(text.match(/\[[^[\]\n]{1,40}\]/g) || [])],
+      unknown: placeholderKeys(text)
+        .filter((key) => key !== "name" && !columnKeys.includes(key.trim().toLowerCase()))
+        .map((key) => `{${key}}`),
+      missingName: !text.includes("{name}"),
+    };
+  }
+
+  // Placeholders whose column is blank for this guest.
+  function emptyFields(template, guest) {
+    const fields = (guest && guest.fields) || {};
+    return placeholderKeys(template)
+      .filter((key) => key !== "name" && fields[key.trim().toLowerCase()] === "")
+      .map((key) => `{${key}}`);
+  }
+
+  const api = {
+    markupToHtml,
+    deltaToMarkup,
+    looksLikeMarkup,
+    whatsappPreviewHtml,
+    renderMessage,
+    templateIssues,
+    emptyFields,
+  };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.WaConvert = api;
 })(typeof window !== "undefined" ? window : globalThis);

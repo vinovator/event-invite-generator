@@ -4,10 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Event Invitation Generator</title>
+<script>
+  // Apply a saved Light/Dark choice before the page is drawn (no flash of the wrong theme).
+  try {
+    const theme = localStorage.getItem("invite.theme");
+    if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+  } catch (e) { /* storage unavailable: follow the system */ }
+</script>
 <!-- Quill (rich-text editor), pinned. If it can't load, a plain text box is used. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 <style>
   :root {
+    color-scheme: light dark;
     --bg: #ffffff;
     --panel: #f6f7f9;
     --text: #1f2328;
@@ -22,8 +30,9 @@
     --info-bg: #eaf3ff;
     --info-text: #164a8a;
   }
+  /* Dark colours: the system is dark (and Light wasn't chosen), or Dark was chosen. */
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --bg: #0e1117;
       --panel: #171b23;
       --text: #e6edf3;
@@ -38,6 +47,22 @@
       --info-text: #9cc7ff;
     }
   }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0e1117;
+    --panel: #171b23;
+    --text: #e6edf3;
+    --muted: #98a2b3;
+    --border: #313844;
+    --accent: #25a18e;
+    --ok: #3dd56d;
+    --err: #ff7b72;
+    --warn-bg: #3a2e12;
+    --warn-text: #f2c96d;
+    --info-bg: #13263f;
+    --info-text: #9cc7ff;
+  }
+  :root[data-theme="light"] { color-scheme: light; }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
   body {
@@ -86,8 +111,9 @@
   #toolbar.ql-toolbar.ql-snow { border: 1px solid var(--border); border-radius: 8px 8px 0 0; background: var(--panel); }
   .insert-bar { border: 1px solid var(--border); border-top: 0; background: var(--panel); padding: 4px 8px; }
   .insert-bar select { padding: 3px 8px; font-size: 13px; }
-  #editor.ql-container.ql-snow { border: 1px solid var(--border); border-top: 0; border-radius: 0 0 8px 8px; font: inherit; }
-  .ql-editor { min-height: 280px; max-height: 460px; overflow-y: auto; font-size: 15px; line-height: 1.5; color: var(--text); }
+  /* height:auto - Quill's own CSS stretches the box to the whole column (height:100%). */
+  #editor.ql-container.ql-snow { height: auto; border: 1px solid var(--border); border-top: 0; border-radius: 0 0 8px 8px; font: inherit; }
+  .ql-editor { min-height: 280px; max-height: calc(25 * 1.5em + 24px); overflow-y: auto; font-size: 15px; line-height: 1.5; color: var(--text); }
   .ql-editor.ql-blank::before { color: var(--muted); font-style: normal; }
   .ql-snow .ql-editor code { background: var(--panel); border-radius: 3px; padding: 0 3px; }
   .ql-snow .ql-editor blockquote { border-left: 3px solid var(--border); padding-left: 10px; }
@@ -95,11 +121,27 @@
   .ql-snow .ql-fill { fill: var(--text); }
   .ql-snow.ql-toolbar button:hover .ql-stroke, .ql-snow.ql-toolbar button.ql-active .ql-stroke { stroke: var(--accent); }
   .ql-snow.ql-toolbar button:hover .ql-fill, .ql-snow.ql-toolbar button.ql-active .ql-fill { fill: var(--accent); }
-  #plain { width: 100%; min-height: 280px; padding: 10px 12px; font: inherit; color: var(--text); background: var(--bg);
+  #plain { width: 100%; height: calc(25 * 1.5em + 20px); min-height: 280px; padding: 10px 12px; font: inherit; color: var(--text); background: var(--bg);
     border: 1px solid var(--border); border-top: 0; border-radius: 0 0 8px 8px; resize: vertical; }
 
   details.box { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-top: 12px; }
   details.box summary { cursor: pointer; }
+  .scroll-box { max-height: 280px; overflow-y: auto; }
+  .topbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
+  .back-link { color: var(--accent); font-weight: 600; text-decoration: none; }
+  .back-link:hover { text-decoration: underline; }
+  .theme-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .theme-switch button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 13px; }
+  .theme-switch button + button { border-left: 1px solid var(--border); }
+  .theme-switch button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
+  .image-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px;
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
+  .image-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .image-info .row { gap: 6px; }
+  .image-bar button, .image-bar .file-button { padding: 4px 10px; font-size: 13.5px; }
+  .mini-thumb { width: 64px; height: 64px; flex: none; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+  .choice-buttons button { flex: 1 1 auto; white-space: nowrap; }
+  .push-right { margin-left: auto; }
   .thumb { max-width: 260px; max-height: 260px; border-radius: 8px; border: 1px solid var(--border); display: block; }
 
   /* Send column */
@@ -118,29 +160,40 @@
   #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg);
     padding: 8px 16px; border-radius: 99px; font-size: 14px; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
   #toast.show { opacity: 0.92; }
-  footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
 </style>
 </head>
 <body>
 <div class="page">
+  <div class="topbar">
+    <a class="back-link" href="https://vinothhaldorai.com/apps/" title="vinothhaldorai.com/apps">← Back to all apps</a>
+    <div class="row">
+      <span class="caption">Theme:</span>
+      <div class="theme-switch" role="group" aria-label="Colour theme">
+        <button type="button" data-theme-choice="light" title="Always use the light theme">☀️ Light</button>
+        <button type="button" data-theme-choice="dark" title="Always use the dark theme">🌙 Dark</button>
+        <button type="button" data-theme-choice="system" title="Follow your device's light/dark setting">🖥️ System</button>
+      </div>
+    </div>
+  </div>
   <h1>🎉 Event Invitation Generator</h1>
   <p class="muted">
     Excel guest list: headers on <b>row 2</b>. Required columns: <code>Addressable Names</code> (the greeting, <code>{name}</code>)
     and <code>Add to Invite List?</code> (<code>Yes</code> to include). Optional: <code>Name</code> (WhatsApp contact name),
-    <code>Category</code>, <code>Invited?</code> / <code>Invited On</code> (filled in by <i>Mark sent</i>), and any other column
-    for <code>{Column}</code> placeholders. Everything stays in this browser — nothing is uploaded.
+    <code>Category</code>, <code>Invited?</code> / <code>Invited On</code> (filled in when you mark a guest as sent), and any other
+    column for <code>{Column}</code> placeholders. Everything stays in this browser; nothing is uploaded to a server.
   </p>
   <div class="row">
-    <button id="open-list" class="primary">📂 Open guest list (.xlsx)</button>
+    <button id="open-list" class="primary">⬆️ Upload guest list (.xlsx)</button>
     <input type="file" id="list-input" accept=".xlsx" hidden>
-    <button id="download-blank">⬇️ Blank template (.xlsx)</button>
-    <button id="try-sample" hidden>Try sample data</button>
+    <button id="download-blank">⬇️ Download blank guest list template (.xlsx)</button>
+    <button id="try-sample" hidden>🧪 Try with a sample guest list</button>
     <span id="file-name" class="muted"></span>
+    <button id="clear-data" class="link push-right" title="Removes the guest list, message, image and progress kept in this browser">🧹 Clear data saved in this browser</button>
   </div>
   <div id="resume" class="info row" hidden style="margin-top:10px">
     <span id="resume-text"></span>
-    <button id="resume-yes" class="primary">Resume</button>
-    <button id="resume-no">Discard</button>
+    <button id="resume-yes" class="primary">▶ Resume where I left off</button>
+    <button id="resume-no">Start fresh</button>
   </div>
   <div id="error" class="error" hidden style="margin-top:10px"><span id="error-text"></span><button class="link" id="error-close">Dismiss</button></div>
 
@@ -148,13 +201,13 @@
     <!-- 1. Guests -->
     <section class="stack">
       <h2>👥 1. Select guests</h2>
-      <p id="guests-empty" class="info">Open your guest list to start — or download the blank template, fill it in, and open it.</p>
+      <p id="guests-empty" class="info">Upload your guest list to start, or download the blank guest list template, fill it in and upload it.</p>
       <div id="guests-ui" class="stack" hidden>
         <p id="breakdown" class="info"></p>
         <p id="column-notes" class="muted" hidden></p>
-        <select id="category" aria-label="Category"></select>
-        <input type="search" id="search" placeholder="Search guests" aria-label="Search guests">
-        <div class="row grow"><button id="select-visible">Select all</button><button id="clear-selection">Clear</button></div>
+        <select id="category" aria-label="Show guests from this category"></select>
+        <input type="search" id="search" placeholder="Search guests by name" aria-label="Search guests by name">
+        <div class="row choice-buttons"><button id="select-visible">☑️ Select all shown</button><button id="clear-selection">✕ Clear selection</button></div>
         <div id="guest-list" class="checklist"></div>
         <p id="selected-summary"></p>
       </div>
@@ -162,7 +215,23 @@
 
     <!-- 2. Message & image -->
     <section>
-      <h2>✍️ 2. Message &amp; image</h2>
+      <h2>✍️ 2. Invite image &amp; message</h2>
+      <div class="image-bar">
+        <img id="image-thumb" class="mini-thumb" alt="Invite image" hidden>
+        <div class="image-info">
+          <div class="row">
+            <strong>🖼️ Invite image</strong>
+            <label id="image-ui" hidden><input type="checkbox" id="attach-image" checked> Send it before the text</label>
+            <span id="no-image" class="caption">No image yet: invites will be text only.</span>
+          </div>
+          <div class="row">
+            <label class="file-button">⬆️ <span id="image-upload-label">Upload invite image</span><input type="file" id="image-input" accept="image/png,image/jpeg,image/webp" hidden></label>
+            <button id="download-image" hidden>⬇️ Download image</button>
+            <button id="remove-image" hidden>✕ Remove image</button>
+          </div>
+          <span id="image-note" class="caption" hidden>This image is too large to keep in the browser, so you'll need to upload it again next time.</span>
+        </div>
+      </div>
       <div id="toolbar">
         <span class="ql-formats">
           <button class="ql-bold" title="Bold (⌘B / Ctrl+B)"></button>
@@ -179,37 +248,28 @@
       </div>
       <!-- Outside #toolbar on purpose: Quill would restyle any <select> inside it. -->
       <div class="insert-bar">
-        <select id="insert-field" aria-label="Insert a field"><option value="">+ Insert field…</option></select>
+        <select id="insert-field" aria-label="Insert a guest detail"><option value="">+ Insert a guest detail (name, column…)</option></select>
       </div>
       <div id="editor"></div>
-      <textarea id="plain" hidden aria-label="Message template"></textarea>
-      <p class="caption">Select text and use the toolbar. Pasting from Word, Google Docs or an email keeps bold, italic and
-        strikethrough; WhatsApp has no underline, colours or font sizes, so those are dropped.</p>
+      <textarea id="plain" hidden aria-label="Message"></textarea>
+      <p class="caption">Select text and use the toolbar. When you paste from Word, Google Docs or email, bold, italic and
+        strikethrough are kept; other styling is dropped (WhatsApp can't show it).</p>
       <div id="template-warnings" class="stack"></div>
-      <p class="caption" id="preview-label"></p>
-      <div id="preview"></div>
-      <details class="box">
-        <summary>📂 Load / save template</summary>
-        <div class="row" style="margin-top:8px">
-          <label class="file-button">Load template (.txt / .md)<input type="file" id="template-input" accept=".txt,.md,text/plain" hidden></label>
-          <button id="download-template">💾 Download template (.txt)</button>
-          <button id="reset-template">↺ Reset to sample</button>
-        </div>
-        <p class="caption">Your template is also kept in this browser automatically.</p>
-      </details>
 
-      <h3>🖼️ Invite image</h3>
-      <div class="row">
-        <label class="file-button">Upload image<input type="file" id="image-input" accept="image/png,image/jpeg,image/webp" hidden></label>
-        <span class="caption">Sent as its own post, before the text.</span>
-      </div>
-      <div id="image-ui" class="stack" hidden style="margin-top:10px">
-        <img id="image-thumb" class="thumb" alt="Invite image">
-        <label><input type="checkbox" id="attach-image" checked> Attach this image</label>
-        <div class="row"><button id="download-image">⬇️ Download image</button><button id="remove-image">✕ Remove</button></div>
-        <p id="image-note" class="caption" hidden>This image is too large to keep in the browser — you'll need to upload it again next time.</p>
-      </div>
-      <p id="no-image" class="info" style="margin-top:10px">No image: invites will be text only.</p>
+      <details class="box">
+        <summary>👁️ Preview: how WhatsApp will show it</summary>
+        <p class="caption" id="preview-label"></p>
+        <div id="preview" class="scroll-box"></div>
+      </details>
+      <details class="box">
+        <summary>📂 Upload or download this message</summary>
+        <div class="row" style="margin-top:8px">
+          <label class="file-button">⬆️ Upload a saved message (.txt)<input type="file" id="template-input" accept=".txt,.md,text/plain" hidden></label>
+          <button id="download-template">⬇️ Download this message (.txt)</button>
+          <button id="reset-template">↺ Replace with the sample message</button>
+        </div>
+        <p class="caption">Your message is also kept in this browser automatically.</p>
+      </details>
     </section>
 
     <!-- 3. Copy & send -->
@@ -218,9 +278,9 @@
       <div id="savebar" class="savebar stack" hidden>
         <div id="save-status"></div>
         <div class="row">
-          <button id="download-updated">⬇️ Download updated list</button>
+          <button id="download-updated">⬇️ Download updated guest list (.xlsx)</button>
           <label id="autosave-wrap" hidden><input type="checkbox" id="autosave"> <span id="autosave-label"></span></label>
-          <button id="download-original" class="link">Download original (backup)</button>
+          <button id="download-original" class="link">⬇️ Download original guest list (backup)</button>
         </div>
       </div>
       <p id="send-empty" class="info">Select guests in column 1 to start.</p>
@@ -229,37 +289,33 @@
         <p id="progress-text"></p>
         <p id="all-done" class="success" hidden>All selected guests are marked as sent 🎉</p>
         <div class="nav">
-          <button id="prev" title="Previous guest">◀</button>
+          <button id="prev" title="Previous guest">◀ Previous</button>
           <select id="picker" aria-label="Guest"></select>
-          <button id="next" title="Next guest">▶</button>
+          <button id="next" title="Next guest">Next ▶</button>
         </div>
         <div class="card stack">
           <div class="card-head"><strong id="card-name"></strong><span id="card-status" class="muted"></span></div>
           <p class="muted">WhatsApp contact: <b id="card-contact"></b></p>
           <div class="row copy-row">
-            <button id="copy-name">🔍 Copy name</button>
-            <button id="copy-image">📷 Copy image</button>
-            <button id="copy-text">📋 Copy text</button>
+            <button id="copy-name">🔍 Copy contact name</button>
+            <button id="copy-image">📷 Copy invite image</button>
+            <button id="copy-text">📋 Copy message text</button>
           </div>
           <p id="copy-status" class="status" aria-live="polite"></p>
           <p id="steps" class="caption"></p>
           <div id="card-warnings" class="stack"></div>
-          <button id="mark-sent" class="primary">✅ Mark sent &amp; next</button>
-          <button id="undo-sent" hidden>↩️ Undo mark as sent</button>
-          <div id="post-image" hidden><p class="caption">Post 1 — image</p><img id="card-image" class="thumb" alt="Invite image"></div>
-          <p class="caption" id="post-text-label">Post 2 — text</p>
-          <div id="card-preview"></div>
-          <details><summary class="caption">Raw text (manual copy)</summary><pre id="raw-text" class="raw"></pre></details>
+          <button id="mark-sent" class="primary">✅ Mark as sent &amp; go to next guest</button>
+          <button id="undo-sent" hidden>↩️ Undo: mark as not sent</button>
+          <div id="post-image" hidden><p class="caption">Post 1: image</p><img id="card-image" class="thumb" alt="Invite image"></div>
+          <p class="caption" id="post-text-label">Post 2: text</p>
+          <div id="card-preview" class="scroll-box"></div>
+          <details><summary class="caption">Show the plain text (to copy by hand)</summary><pre id="raw-text" class="raw"></pre></details>
         </div>
-        <button id="download-all">Download all messages (.txt)</button>
+        <button id="download-all">⬇️ Download all selected guests' messages (.txt)</button>
       </div>
     </section>
   </div>
 
-  <footer class="row">
-    <span>Your guest list, template and progress are stored only in this browser.</span>
-    <button id="clear-data" class="link">🧹 Clear saved data</button>
-  </footer>
 </div>
 <div id="toast" role="status"></div>
 
@@ -279,7 +335,7 @@
   const COUNT_PREFIXES = ["estimated count", "adults", "kids", "children", "headcount", "pax"];
   const NO_CATEGORY = "\u0000none";
   const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-  const KEYS = { template: "invite.template", image: "invite.image", session: "invite.session" };
+  const KEYS = { template: "invite.template", image: "invite.image", session: "invite.session", theme: "invite.theme" };
   const SAMPLE_LIST = "data/WhatsApp Invite List dummy.xlsx";
   const SAMPLE_IMAGE = "data/WhatsApp Invite.png";
   const DEFAULT_TEMPLATE = [
@@ -378,7 +434,25 @@
     return bytes;
   }
 
-  const isDark = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
+  // Light/Dark chosen in the theme switch, otherwise the device setting.
+  const isDark = () => {
+    const chosen = document.documentElement.dataset.theme;
+    return chosen ? chosen === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  };
+
+  function applyTheme(choice) {
+    if (choice === "light" || choice === "dark") {
+      document.documentElement.dataset.theme = choice;
+      store.set(KEYS.theme, choice);
+    } else {
+      choice = "system";
+      delete document.documentElement.dataset.theme;
+      store.remove(KEYS.theme);
+    }
+    for (const button of document.querySelectorAll("[data-theme-choice]")) {
+      button.setAttribute("aria-pressed", String(button.dataset.themeChoice === choice));
+    }
+  }
   const fmtNumber = (n) => (Number.isInteger(n) ? n : +n.toFixed(2)).toLocaleString();
   const baseName = () => state.fileName.replace(/\.xlsx$/i, "") || "Guest list";
 
@@ -481,7 +555,7 @@
   }
 
   async function openWorkbook(bytes, fileName, { handle = null, session = null } = {}) {
-    if (!window.ExcelJS) throw new Error("the Excel library couldn't load — check the internet connection and reload");
+    if (!window.ExcelJS) throw new Error("the Excel library couldn't load. Check the internet connection and reload the page");
     const workbook = new window.ExcelJS.Workbook();
     await workbook.xlsx.load(bytes);
     const sheet = workbook.worksheets[0];
@@ -629,13 +703,13 @@
       "",
       "1. Add one guest (or family) per row, starting at row 3. Keep the headers in row 2 exactly as they are.",
       '2. Addressable Names (required): how the invite greets them, e.g. "Ravi & Priya". It is {name} in the message.',
-      "3. Name: the contact's name as saved in WhatsApp - the app's \"Copy name\" button copies it for WhatsApp search.",
+      "3. Name: the contact's name as saved in WhatsApp - the app's \"Copy contact name\" button copies it for WhatsApp search.",
       "4. Add to Invite List? (required): choose Yes to include the guest.",
-      '5. Invited? and Invited On: leave blank - the app fills them in when you click "Mark sent".',
+      '5. Invited? and Invited On: leave blank - the app fills them in when you click "Mark as sent".',
       "6. Category: optional, e.g. Family / Friends / Work - the app can show one category at a time.",
       "7. Estimated Count / Adults / Kids: added up in the app for headcounts.",
       "8. Any column can be used in the message as {Column name}, e.g. {Adults} - add your own columns if you like.",
-      '9. Keep "Invite List" as the first sheet, save as .xlsx and open it in the app.',
+      '9. Keep "Invite List" as the first sheet, save as .xlsx and upload it in the app.',
     ].forEach((line, i) => (help.getCell(i + 1, 1).value = line));
     help.getCell("A1").font = { bold: true, size: 13 };
     help.getColumn(1).width = 110;
@@ -683,7 +757,7 @@
       if (!store.set(KEYS.session, JSON.stringify(session))) {
         session.original = null;
         if (!store.set(KEYS.session, JSON.stringify(session))) {
-          showError("This guest list is too large to keep in the browser — download the updated list before you close the page.");
+          showError("This guest list is too large to keep in the browser. Download the updated guest list before you close the page.");
         }
       }
     }, 300);
@@ -701,7 +775,7 @@
     const when = minutes < 1 ? "just now" : minutes < 90 ? `${minutes} min ago` : new Date(session.savedAt).toLocaleString();
     const done = session.sent.filter((r) => session.selected.includes(r)).length;
     $("resume-text").textContent =
-      `Resume “${session.fileName}” — ${done} of ${session.selected.length} selected guests sent (saved ${when}).`;
+      `Unfinished session: “${session.fileName}”, ${done} of ${session.selected.length} selected guests sent (saved ${when}).`;
     $("resume").hidden = false;
     $("resume-yes").onclick = async () => {
       try {
@@ -770,6 +844,7 @@
     if (quill) {
       quill.setContents(quill.clipboard.convert({ html: W.markupToHtml(text) }), "silent");
       quill.history.clear();
+      quill.root.scrollTop = 0; // show the start of the message
     } else {
       plain.value = text;
     }
@@ -826,7 +901,7 @@
       theme: "snow",
       // Only what WhatsApp can show - anything else is dropped, also when pasting.
       formats: ["bold", "italic", "strike", "code", "list", "blockquote"],
-      placeholder: "Write the invitation here. Use “Insert field” for the guest's name.",
+      placeholder: "Write the invitation here. Use “Insert a guest detail” to add each guest's name.",
       modules: {
         toolbar: "#toolbar",
         keyboard: {
@@ -876,8 +951,8 @@
   function fillInsertField() {
     const select = $("insert-field");
     select.replaceChildren(
-      el("option", { value: "", textContent: "+ Insert field…" }),
-      el("option", { value: "{name}", textContent: "{name} — greeting (Addressable Names)" })
+      el("option", { value: "", textContent: "+ Insert a guest detail (name, column…)" }),
+      el("option", { value: "{name}", textContent: "{name}: the greeting (Addressable Names)" })
     );
     if (!state.cols) return;
     const skip = new Set([state.cols.name, state.cols.invite, state.cols.invited, state.cols.invitedOn].filter(Boolean).map((c) => c.key));
@@ -946,8 +1021,8 @@
       `Marked to invite: ${marked.length} · Already invited: ${already} · Available: ${state.available.length}`;
 
     const notes = [];
-    if (!state.cols.invite) notes.push("No 'Add to Invite List?' column — showing everyone.");
-    if (!state.cols.invited) notes.push("No 'Invited?' column — it will be added when you mark a guest as sent.");
+    if (!state.cols.invite) notes.push("No 'Add to Invite List?' column, so everyone is shown.");
+    if (!state.cols.invited) notes.push("No 'Invited?' column yet. It will be added when you mark a guest as sent.");
     $("column-notes").textContent = notes.join(" ");
     $("column-notes").hidden = !notes.length;
 
@@ -998,7 +1073,7 @@
       box.append(el("p", { className: "warn", textContent: `⚠️ Still to fill in: ${issues.brackets.join(", ")}` }));
     }
     if (state.cols && issues.unknown.length) {
-      box.append(el("p", { className: "warn", textContent: `⚠️ No column called ${issues.unknown.join(", ")} — it will be sent as typed.` }));
+      box.append(el("p", { className: "warn", textContent: `⚠️ No column called ${issues.unknown.join(", ")} , so it will be sent as typed.` }));
     }
     if (issues.missingName) {
       box.append(el("p", { className: "warn", textContent: "⚠️ No {name} in the message, so every guest gets the same greeting." }));
@@ -1017,9 +1092,13 @@
   function renderImage() {
     const has = Boolean(state.image);
     $("image-ui").hidden = !has;
-    $("no-image").hidden = has && state.attach;
+    $("download-image").hidden = !has;
+    $("remove-image").hidden = !has;
+    $("image-thumb").hidden = !has;
     if (has) $("image-thumb").src = state.image.dataUrl;
-    $("no-image").textContent = has ? "Image not attached: invites will be text only." : "No image: invites will be text only.";
+    $("image-upload-label").textContent = has ? "Change image" : "Upload invite image";
+    $("no-image").hidden = has && state.attach;
+    $("no-image").textContent = has ? "Not attached: invites will be text only." : "No image yet: invites will be text only.";
   }
 
   function renderSaveBar() {
@@ -1027,12 +1106,12 @@
     if (!state.workbook) return;
     const canSave = Boolean(state.handle && window.showOpenFilePicker);
     $("autosave-wrap").hidden = !canSave;
-    $("autosave-label").textContent = `Save changes into ${state.fileName}`;
+    $("autosave-label").textContent = `Also save changes straight into ${state.fileName}`;
     $("download-original").hidden = !state.original;
     let status;
-    if (state.autoSave) status = `💾 Changes are saved into ${state.fileName} automatically.`;
-    else if (state.changed) status = "Changes are kept in this browser — download the updated list to keep them in Excel.";
-    else status = "No changes yet. Marking guests as sent fills in Invited? and Invited On.";
+    if (state.autoSave) status = `💾 Changes are saved straight into ${state.fileName}.`;
+    else if (state.changed) status = "Changes are kept in this browser. Download the updated guest list to keep them in Excel.";
+    else status = "No changes yet. Marking a guest as sent fills in Invited? and Invited On.";
     $("save-status").textContent = status;
     $("download-updated").classList.toggle("primary", state.changed && !state.autoSave);
   }
@@ -1072,8 +1151,8 @@
     $("card-contact").textContent = guest.contact;
     $("copy-image").hidden = !withImage;
     $("steps").textContent = withImage
-      ? "Search WhatsApp for the contact and open the chat, then: 📷 Copy image → paste (⌘V / Ctrl+V) → send, 📋 Copy text → paste → send."
-      : "Search WhatsApp for the contact and open the chat, then: 📋 Copy text → paste (⌘V / Ctrl+V) → send.";
+      ? "Open this guest's chat in WhatsApp (🔍 Copy contact name helps you search), then: 📷 Copy invite image → paste (⌘V / Ctrl+V) → send, then 📋 Copy message text → paste → send."
+      : "Open this guest's chat in WhatsApp (🔍 Copy contact name helps you search), then: 📋 Copy message text → paste (⌘V / Ctrl+V) → send.";
     $("mark-sent").hidden = isSent;
     $("undo-sent").hidden = !isSent;
     $("post-image").hidden = !withImage;
@@ -1197,15 +1276,15 @@
     if (!file) return;
     const text = (await file.text()).replace(/^﻿/, "").replace(/\r\n?/g, "\n");
     setTemplate(text, { reloadEditor: true });
-    toast("Template loaded");
+    toast("Message loaded");
   });
 
   $("download-template").addEventListener("click", () => {
     flushEdit();
-    downloadBlob(state.template, "invitation_template.txt", "text/plain;charset=utf-8");
+    downloadBlob(state.template, "invitation_message.txt", "text/plain;charset=utf-8");
   });
 
-  confirmClick($("reset-template"), "Click again to replace your text", () => {
+  confirmClick($("reset-template"), "Click again to replace your message", () => {
     setTemplate(DEFAULT_TEMPLATE, { reloadEditor: true });
   });
 
@@ -1254,23 +1333,23 @@
   $("copy-name").addEventListener("click", async () => {
     const name = state.byRow.get(state.current).contact;
     const ok = await copyText(name);
-    copyStatus(ok ? `Name copied ✓ — paste it into WhatsApp's search to open the chat.` : "Couldn't copy the name.", ok);
+    copyStatus(ok ? "✓ Contact name copied. Paste it into WhatsApp's search to open the chat." : "Couldn't copy the contact name.", ok);
   });
 
   $("copy-image").addEventListener("click", async () => {
     try {
       // The item is built straight away, as Safari requires.
       await navigator.clipboard.write([new ClipboardItem({ "image/png": state.image.png })]);
-      copyStatus("Image copied ✓ — paste it into the chat (⌘V / Ctrl+V), send it, then copy the text.", true);
+      copyStatus("✓ Invite image copied. Paste it into the chat (⌘V / Ctrl+V), send it, then copy the message text.", true);
     } catch (err) {
-      copyStatus(`Couldn't copy the image in this browser (${err.name}) — use "Download image" and drag it into WhatsApp.`, false);
+      copyStatus(`Couldn't copy the image in this browser (${err.name}). Use “Download invite image” and drag it into WhatsApp.`, false);
     }
   });
 
   $("copy-text").addEventListener("click", async () => {
     flushEdit(); // copy what's in the editor right now, even mid-typing
     const ok = await copyText(W.renderMessage(state.template, state.byRow.get(state.current)));
-    copyStatus(ok ? "Text copied ✓ — paste it into the chat (⌘V / Ctrl+V) and send." : "Couldn't copy — use “Raw text” below.", ok);
+    copyStatus(ok ? "✓ Message text copied. Paste it into the chat (⌘V / Ctrl+V) and send." : "Couldn't copy. Open “Show the plain text” below and copy it by hand.", ok);
   });
 
   $("mark-sent").addEventListener("click", () => {
@@ -1331,15 +1410,23 @@
 
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderMessages);
 
+  for (const button of document.querySelectorAll("[data-theme-choice]")) {
+    button.addEventListener("click", () => {
+      applyTheme(button.dataset.themeChoice);
+      renderMessages(); // the WhatsApp bubbles have their own light/dark colours
+    });
+  }
+
   // ------------------------------------------------------------------ start-up
 
+  applyTheme(store.get(KEYS.theme));
   setupEditor();
   state.template = store.get(KEYS.template) ?? DEFAULT_TEMPLATE;
   loadEditor(state.template);
   fillInsertField();
   renderAll();
   offerResume();
-  if (!window.ExcelJS) showError("The Excel library couldn't load — check the internet connection and reload the page.");
+  if (!window.ExcelJS) showError("The Excel library couldn't load. Check the internet connection and reload the page.");
 
   try {
     const saved = JSON.parse(store.get(KEYS.image) || "null");

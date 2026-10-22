@@ -34,7 +34,7 @@ When everyone selected is marked as sent, a summary appears at the top with the 
 
 Marking a guest as sent fills in `Invited?` = Yes and `Invited On` (date and time) in the workbook. In Chrome or Edge you can tick *Also save changes straight into …* under the guest list to write straight back into your Excel file; other browsers download an updated copy. The **More** menu (top right) has the rarer actions: download the updated or original guest list, download all the messages as text, the blank template, and **Clear data saved in this browser** (e.g. on a shared computer).
 
-Progress, message, event details and image are kept in the browser: after a refresh, click **Resume where I left off** to carry on from the same screen. (The sample guest list isn't kept, so trying it never replaces your own unfinished list.) The browser's Back button moves between setting up and sending. The sun/moon button at the top switches between light and dark; until you choose, it follows your device.
+Progress, message, event details and image are kept in the browser: after a refresh, click **Resume where I left off** to carry on from the same screen. (The sample guest list isn't kept, so trying it never replaces your own unfinished list.) The browser's Back button moves between setting up and sending. The sun/moon button at the top switches between light and dark (it shows the theme a click switches to); until you choose, it follows your device.
 
 **Install it as an app:** in Chrome or Edge, choose **More → Install this app** (or the install icon in the address bar); on an iPhone or iPad, tap **Share → Add to Home Screen**. It then opens in its own window, with its own icon. On an iPhone or iPad the home-screen app keeps its own saved data, separate from Safari.
 

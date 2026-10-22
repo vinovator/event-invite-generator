@@ -1036,10 +1036,10 @@
     renderThemeToggle();
   }
 
-  // The icon shows the current theme; the label says what a click does.
+  // Like every other button, the icon and the label show what a click does: a sun switches to light, a moon to dark.
   function renderThemeToggle() {
     const dark = isDark();
-    $("theme-icon").setAttribute("href", dark ? "#i-moon" : "#i-sun");
+    $("theme-icon").setAttribute("href", dark ? "#i-sun" : "#i-moon");
     const label = `Switch to ${dark ? "light" : "dark"} theme (now ${dark ? "dark" : "light"}` +
       `${root.dataset.theme ? "" : ", following your device"})`;
     $("theme-toggle").setAttribute("aria-label", label);

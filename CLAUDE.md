@@ -71,7 +71,7 @@ All state is in the `state` object inside the IIFE. localStorage keys:
 - `invite.theme`: `"light"` or `"dark"`, only while it differs from the device setting.
 - `invite.session`: file name, workbook bytes (base64), original bytes (if small), selection, current guest, sent rows, previous values, category, `changed`, `view`, `savedAt`. Offered back by the "Resume where I left off" banner on load, which reopens the same screen. Not written for the sample.
 
-**Theme:** a script in `<head>` sets `<html data-theme>` before the page is drawn. The sun/moon toggle switches between light and dark; choosing what the device already uses clears the saved choice, so the page follows the device again. `isDark()` follows the same rule for the WhatsApp preview bubbles.
+**Theme:** a script in `<head>` sets `<html data-theme>` before the page is drawn. The sun/moon toggle switches between light and dark, and its icon shows where a click goes (a sun in dark mode, a moon in light mode), like its label; choosing what the device already uses clears the saved choice, so the page follows the device again. `isDark()` follows the same rule for the WhatsApp preview bubbles.
 
 **Saving into the opened file:** "Also save changes straight into <file>" (under the guest list) uses the File System Access API (`showOpenFilePicker` + `createWritable`, Chrome/Edge desktop only). It's opt-in per session, and writes go through the serialized `saving` promise chain. Other browsers use "Download updated guest list (.xlsx)".
 

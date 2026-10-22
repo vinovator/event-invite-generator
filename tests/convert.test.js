@@ -1,5 +1,4 @@
 // Checks for convert.js. Run with: node tests/convert.test.js (no dependencies).
-const fs = require("fs");
 const path = require("path");
 const {
   markupToHtml,
@@ -90,7 +89,27 @@ function htmlToDelta(html) {
   }
   return { ops };
 }
-const sample = fs.readFileSync(path.join(__dirname, "..", "data", "invitation_prompt.md"), "utf8");
+// The sample message in index.html (DEFAULT_TEMPLATE).
+const sample = [
+  "*Subject: Invitation to [Event Name] 🎉*",
+  "",
+  "Dear {name},",
+  "",
+  "We are excited to invite you to [Event Name]! It would mean a lot to us to have *you and your family* with us to celebrate this special milestone.",
+  "",
+  "Please join us for [Activity/Meal].",
+  "",
+  "*Date:* [Date]",
+  "*Time:* [Time]",
+  "*Address:* [Address]",
+  "",
+  "We really hope to see you there!",
+  "",
+  "Warm regards,",
+  "",
+  "*[Host Name]*",
+  "",
+].join("\n");
 check("sample template round-trips", deltaToMarkup(htmlToDelta(markupToHtml(sample))), sample);
 const tricky = "*Invitation to our Diwali party 🎉*\n\nDear {name},\nPlease join us with _your family_ & friends <3.\n" +
   "> *Dress:* ethnic\n- Food\n- Music\n1. Arrive\n2. Enjoy\nCode ```A1``` ~old~ new";
@@ -105,18 +124,18 @@ check("preview multi-line monospace", inner(whatsappPreviewHtml("```a\n*b*```", 
 check("preview dark bubble", whatsappPreviewHtml("x", true).includes("background:#005c4b"), true);
 
 // --- Filling in a guest's message
-const ravi = { name: "Ravi & Priya", fields: { name: "Ravi Kumar", adults: "2", kids: "", category: "Family" } };
-check("{name} is the greeting", renderMessage("Dear {name},", ravi), "Dear Ravi & Priya,");
-check("{Column} is case-insensitive", renderMessage("{Adults} adults, {CATEGORY}", ravi), "2 adults, Family");
-check("{Name} is the Name column", renderMessage("Contact: {Name}", ravi), "Contact: Ravi Kumar");
-check("unknown placeholder stays", renderMessage("{Table} {x", ravi), "{Table} {x");
+const guest = { name: "Guest-1 & family", fields: { name: "Guest-1", adults: "2", kids: "", category: "Family" } };
+check("{name} is the greeting", renderMessage("Dear {name},", guest), "Dear Guest-1 & family,");
+check("{Column} is case-insensitive", renderMessage("{Adults} adults, {CATEGORY}", guest), "2 adults, Family");
+check("{Name} is the Name column", renderMessage("Contact: {Name}", guest), "Contact: Guest-1");
+check("unknown placeholder stays", renderMessage("{Table} {x", guest), "{Table} {x");
 check("legacy ** becomes *", renderMessage("**Date:** {name}", { name: "A**B", fields: {} }), "*Date:* A**B");
 
 // --- Warnings
 check("template issues", templateIssues("Hi {name} at [Venue], [Venue] and {Table} {adults}", ["name", "adults"]),
   { brackets: ["[Venue]"], unknown: ["{Table}"], missingName: false });
 check("missing {name}", templateIssues("Hello all", []).missingName, true);
-check("empty fields for a guest", emptyFields("{name}: {Adults} adults, {Kids} kids, {Table}", ravi), ["{Kids}"]);
+check("empty fields for a guest", emptyFields("{name}: {Adults} adults, {Kids} kids, {Table}", guest), ["{Kids}"]);
 
 // --- Event details: [blanks] filled once for every guest
 const {
@@ -129,29 +148,30 @@ check("clock midnight", formatClock("00:05"), "12:05 am");
 check("clock noon", formatClock("12:00"), "12:00 pm");
 
 const party = {
-  name: "Aarav's 1st Birthday", date: "2026-11-14", start: "18:30", end: "22:00",
-  address: "Hilton Hall, 1 High St, Leeds", host: "Vinoth & family",
+  name: "Guest-1's 1st Birthday", date: "2026-11-14", start: "18:30", end: "22:00",
+  address: "Venue Hall, 1 High Street, Town", host: "Host-1 & family",
   other: { "activity meal": "dinner" }, timeZone: "Europe/London",
 };
 check("fills the sample template's blanks", fillBlanks(sample, party).split("\n").filter((l) => /Date|Time|Address|Host|join|Subject/.test(l)), [
-  "*Subject: Invitation to Aarav's 1st Birthday 🎉*",
+  "*Subject: Invitation to Guest-1's 1st Birthday 🎉*",
   "Please join us for dinner.",
   "*Date:* Saturday 14 November 2026",
   "*Time:* 6:30 pm to 10:00 pm",
-  "*Address:* Hilton Hall, 1 High St, Leeds",
+  "*Address:* Venue Hall, 1 High Street, Town",
+  "*Host-1 & family*",
 ]);
-check("host blank in bold", fillBlanks("*[Host Name]*", party), "*Vinoth & family*");
+check("host blank in bold", fillBlanks("*[Host Name]*", party), "*Host-1 & family*");
 check("synonyms and spacing", fillBlanks("[venue] / [ Start Time ] / [EVENT]", party),
-  "Hilton Hall, 1 High St, Leeds / 6:30 pm to 10:00 pm / Aarav's 1st Birthday");
+  "Venue Hall, 1 High Street, Town / 6:30 pm to 10:00 pm / Guest-1's 1st Birthday");
 check("unknown or empty blanks stay", fillBlanks("[Dress code] [Date]", { other: {} }), "[Dress code] [Date]");
 check("no event leaves text alone", fillBlanks("[Date]", null), "[Date]");
-check("map link", mapLink(party), "https://www.google.com/maps/search/?api=1&query=Hilton%20Hall%2C%201%20High%20St%2C%20Leeds");
+check("map link", mapLink(party), "https://www.google.com/maps/search/?api=1&query=Venue%20Hall%2C%201%20High%20Street%2C%20Town");
 check("map link needs an address", mapLink({}), "");
 const cal = new URL(calendarLink(party));
 check("calendar link", [cal.origin + cal.pathname, cal.searchParams.get("action"), cal.searchParams.get("text"),
   cal.searchParams.get("dates"), cal.searchParams.get("location"), cal.searchParams.get("ctz")],
-  ["https://calendar.google.com/calendar/render", "TEMPLATE", "Aarav's 1st Birthday", "20261114T183000/20261114T220000",
-    "Hilton Hall, 1 High St, Leeds", "Europe/London"]);
+  ["https://calendar.google.com/calendar/render", "TEMPLATE", "Guest-1's 1st Birthday", "20261114T183000/20261114T220000",
+    "Venue Hall, 1 High Street, Town", "Europe/London"]);
 check("calendar: no end time = 3 hours", new URL(calendarLink({ date: "2026-11-14", start: "18:30" })).searchParams.get("dates"),
   "20261114T183000/20261114T213000");
 check("calendar: ends after midnight", new URL(calendarLink({ date: "2026-12-31", start: "20:00", end: "01:00" })).searchParams.get("dates"),

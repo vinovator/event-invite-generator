@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Event Invitation Generator</title>
 <meta name="description" content="Send personalised WhatsApp invitations from an Excel guest list, one guest at a time. Runs in your browser; nothing is uploaded.">
 <link rel="canonical" href="https://vinovator.github.io/event-invite-generator/">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23128c7e'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate(3.6 3.6) scale(.7)'%3E%3Crect width='20' height='16' x='2' y='4' rx='2'/%3E%3Cpath d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23008069'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate(3.6 3.6) scale(.7)'%3E%3Crect width='20' height='16' x='2' y='4' rx='2'/%3E%3Cpath d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/%3E%3C/g%3E%3C/svg%3E">
 <script>
   // Apply a saved Light/Dark choice before the page is drawn (no flash of the wrong theme).
   try {
@@ -17,177 +17,495 @@
 <!-- Quill (rich-text editor), pinned. If it can't load, a plain text box is used. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 <style>
+  /* ------------------------------------------------------------ colours */
   :root {
     color-scheme: light dark;
-    --bg: #ffffff;
-    --panel: #f6f7f9;
-    --text: #1f2328;
+    --bg: #f2f4f7;
+    --surface: #ffffff;
+    --surface-2: #f6f7f9;
+    --text: #101828;
     --muted: #667085;
-    --border: #d5dae1;
-    --accent: #128c7e;
-    --accent-text: #ffffff;
-    --ok: #177233;
+    --border: #e4e7ec;
+    --border-strong: #d0d5dd;
+    --accent: #008069;
+    --accent-hover: #006d59;
+    --on-accent: #ffffff;
+    --accent-ink: #00705c;
+    --accent-tint: #e7f3f0;
+    --accent-tint-hover: #d3eae4;
+    --ok: #067647;
+    --ok-tint: #e8f6ee;
     --err: #b42318;
-    --warn-bg: #fff6e0;
-    --warn-text: #7a4f00;
-    --info-bg: #eaf3ff;
-    --info-text: #164a8a;
+    --err-tint: #fef3f2;
+    --warn-bg: #fff8e6;
+    --warn-text: #8a3b0c;
+    --info-bg: #eef6ff;
+    --info-text: #1d4f91;
+    --chat-bg: #efeae2;
+    --bubble: #d9fdd3;
+    --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.08);
+    --shadow-lg: 0 16px 32px -8px rgba(16, 24, 40, 0.18), 0 4px 8px -4px rgba(16, 24, 40, 0.08);
+    --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+    --radius: 16px;
+    --gutter: 16px;
   }
   /* Dark colours: the system is dark (and Light wasn't chosen), or Dark was chosen. */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0e1117;
-      --panel: #171b23;
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-2: #1c2129;
       --text: #e6edf3;
-      --muted: #98a2b3;
-      --border: #313844;
-      --accent: #25a18e;
-      --ok: #3dd56d;
-      --err: #ff7b72;
-      --warn-bg: #3a2e12;
-      --warn-text: #f2c96d;
-      --info-bg: #13263f;
-      --info-text: #9cc7ff;
+      --muted: #9da7b3;
+      --border: #262c36;
+      --border-strong: #3a424e;
+      --accent: #00a884;
+      --accent-hover: #12bf98;
+      --on-accent: #06140f;
+      --accent-ink: #2fc8a2;
+      --accent-tint: #12302b;
+      --accent-tint-hover: #183d36;
+      --ok: #4ccf8d;
+      --ok-tint: #11291d;
+      --err: #ff8a80;
+      --err-tint: #3a1c1c;
+      --warn-bg: #2d2412;
+      --warn-text: #f3c56b;
+      --info-bg: #10263d;
+      --info-text: #9ccaff;
+      --chat-bg: #0b141a;
+      --bubble: #005c4b;
+      --shadow: 0 0 0 1px #242a33;
+      --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px #2c333d;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --bg: #0e1117;
-    --panel: #171b23;
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #1c2129;
     --text: #e6edf3;
-    --muted: #98a2b3;
-    --border: #313844;
-    --accent: #25a18e;
-    --ok: #3dd56d;
-    --err: #ff7b72;
-    --warn-bg: #3a2e12;
-    --warn-text: #f2c96d;
-    --info-bg: #13263f;
-    --info-text: #9cc7ff;
+    --muted: #9da7b3;
+    --border: #262c36;
+    --border-strong: #3a424e;
+    --accent: #00a884;
+    --accent-hover: #12bf98;
+    --on-accent: #06140f;
+    --accent-ink: #2fc8a2;
+    --accent-tint: #12302b;
+    --accent-tint-hover: #183d36;
+    --ok: #4ccf8d;
+    --ok-tint: #11291d;
+    --err: #ff8a80;
+    --err-tint: #3a1c1c;
+    --warn-bg: #2d2412;
+    --warn-text: #f3c56b;
+    --info-bg: #10263d;
+    --info-text: #9ccaff;
+    --chat-bg: #0b141a;
+    --bubble: #005c4b;
+    --shadow: 0 0 0 1px #242a33;
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px #2c333d;
   }
   :root[data-theme="light"] { color-scheme: light; }
+
+  /* ------------------------------------------------------------ base */
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  .page { max-width: 1440px; margin: 0 auto; padding: 16px 20px 40px; }
-  h1 { font-size: 28px; margin: 8px 0 4px; }
-  h2 { font-size: 20px; margin: 0 0 12px; }
-  h3 { font-size: 16px; margin: 20px 0 8px; }
-  p { margin: 6px 0; }
-  .muted, .caption { color: var(--muted); font-size: 13px; }
-  code { font-size: 12.5px; background: var(--panel); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
-
-  button, .file-button, select, input[type="search"] {
-    font: inherit; color: var(--text); background: var(--bg);
-    border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px;
-  }
-  button, .file-button { cursor: pointer; }
-  button:hover:not(:disabled), .file-button:hover { border-color: var(--accent); color: var(--accent); }
-  button:disabled { opacity: 0.45; cursor: default; }
-  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
-  button.primary:hover:not(:disabled) { color: var(--accent-text); filter: brightness(1.08); }
-  button.link { border: 0; padding: 0; background: none; color: var(--accent); text-decoration: underline; font-size: 13px; }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-  .grow > * { flex: 1 1 0; }
-  .stack > * + * { margin-top: 10px; }
-
-  .info, .warn, .success, .error { border-radius: 8px; padding: 10px 12px; font-size: 14px; }
-  .info { background: var(--info-bg); color: var(--info-text); }
-  .warn { background: var(--warn-bg); color: var(--warn-text); }
-  .success { background: color-mix(in srgb, var(--ok) 15%, transparent); color: var(--ok); }
-  .error { background: color-mix(in srgb, var(--err) 14%, transparent); color: var(--err); display: flex; gap: 10px; justify-content: space-between; }
-
-  .columns { display: grid; grid-template-columns: minmax(240px, 0.85fr) minmax(300px, 1.25fr) minmax(330px, 1.6fr); gap: 24px; margin-top: 18px; }
-  @media (max-width: 1000px) { .columns { grid-template-columns: 1fr; } }
-
-  .checklist { max-height: 380px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
-  .checklist label { display: flex; gap: 8px; align-items: flex-start; padding: 6px 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
-  .checklist label:last-child { border-bottom: 0; }
-  .checklist .who { display: flex; flex-direction: column; }
-  .checklist .sub { color: var(--muted); font-size: 12.5px; }
-  input[type="search"] { width: 100%; }
-
-  /* Editor */
-  #toolbar.ql-toolbar.ql-snow { border: 1px solid var(--border); border-radius: 8px 8px 0 0; background: var(--panel); }
-  .insert-bar { border: 1px solid var(--border); border-top: 0; background: var(--panel); padding: 4px 8px; }
-  .insert-bar select { padding: 3px 8px; font-size: 13px; }
-  /* height:auto - Quill's own CSS stretches the box to the whole column (height:100%). */
-  #editor.ql-container.ql-snow { height: auto; border: 1px solid var(--border); border-top: 0; border-radius: 0 0 8px 8px; font: inherit; }
-  .ql-editor { min-height: 280px; max-height: calc(25 * 1.5em + 24px); overflow-y: auto; font-size: 15px; line-height: 1.5; color: var(--text); }
-  .ql-editor.ql-blank::before { color: var(--muted); font-style: normal; }
-  .ql-snow .ql-editor code { background: var(--panel); border-radius: 3px; padding: 0 3px; }
-  .ql-snow .ql-editor blockquote { border-left: 3px solid var(--border); padding-left: 10px; }
-  .ql-snow .ql-stroke { stroke: var(--text); }
-  .ql-snow .ql-fill { fill: var(--text); }
-  .ql-snow.ql-toolbar button:hover .ql-stroke, .ql-snow.ql-toolbar button.ql-active .ql-stroke { stroke: var(--accent); }
-  .ql-snow.ql-toolbar button:hover .ql-fill, .ql-snow.ql-toolbar button.ql-active .ql-fill { fill: var(--accent); }
-  #plain { width: 100%; height: calc(25 * 1.5em + 20px); min-height: 280px; padding: 10px 12px; font: inherit; color: var(--text); background: var(--bg);
-    border: 1px solid var(--border); border-top: 0; border-radius: 0 0 8px 8px; resize: vertical; }
-
-  details.box { border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; margin-top: 12px; }
-  details.box summary { cursor: pointer; }
-  .scroll-box { max-height: 280px; overflow-y: auto; }
-  .topbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
-  .back-link { color: var(--accent); font-weight: 600; text-decoration: none; }
-  .back-link:hover { text-decoration: underline; }
-  .icon-button { padding: 7px; }
+  h1, h2, h3 { margin: 0; line-height: 1.25; }
+  h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  h3 { font-size: 15px; font-weight: 650; }
+  h2[tabindex="-1"]:focus { outline: none; }
+  p { margin: 0; }
+  a { color: var(--accent-ink); }
+  code { font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 6px; padding: 1px 5px; overflow-wrap: anywhere; }
+  kbd { display: inline-block; min-width: 22px; padding: 2px 6px; border: 1px solid var(--border-strong); border-bottom-width: 2px;
+    border-radius: 6px; background: var(--surface); color: var(--muted); font: 600 12px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace;
+    text-align: center; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .caption { color: var(--muted); font-size: 13px; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .stack > * + * { margin-top: 12px; }
+  .stack:empty { display: none; }
   /* Icons: one outline set (inline SVG sprite at the top of <body>). */
   .icon { width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; fill: none; stroke: currentColor;
     stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-  button, .file-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-  h1, h2 { display: flex; align-items: center; gap: 10px; }
-  h2 .icon { color: var(--accent); }
-  .logo { display: inline-grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 10px;
-    background: var(--accent); color: var(--accent-text); }
-  .logo .icon { width: 24px; height: 24px; }
-  .subtitle { color: var(--muted); margin: 0 0 12px; }
-  .help-table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin-top: 6px; }
-  .help-table th, .help-table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
-  .help-table td:nth-child(2) { color: var(--muted); white-space: nowrap; width: 1%; }
-  .help-table td:first-child { width: 28%; }
-  .event-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-top: 8px; }
-  .event-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--muted); }
-  .event-grid .wide { grid-column: 1 / -1; }
-  .event-grid input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border);
-    border-radius: 8px; padding: 6px 10px; }
-  @media (max-width: 520px) { .event-grid { grid-template-columns: 1fr; } }
-  /* The send steps read top to bottom, like a checklist. */
-  .steps { display: grid; gap: 6px; }
-  .steps button { justify-content: flex-start; }
-  .step-no { display: inline-grid; place-items: center; width: 20px; height: 20px; flex: none; border-radius: 50%;
-    font-size: 12px; font-weight: 700; background: var(--accent); color: var(--accent-text); }
-  .primary .step-no { background: var(--accent-text); color: var(--accent); }
-  .sent-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ok); }
-  .post-row { display: flex; align-items: center; gap: 10px; }
-  .warn { display: flex; gap: 8px; align-items: flex-start; }
-  .warn .icon { margin-top: 2px; }
-  .image-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px;
-    padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
-  .image-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-  .image-info .row { gap: 6px; }
-  .image-bar button, .image-bar .file-button { padding: 4px 10px; font-size: 13.5px; }
-  .mini-thumb { width: 64px; height: 64px; flex: none; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
-  .choice-buttons button { flex: 1 1 auto; white-space: nowrap; }
-  .push-right { margin-left: auto; }
 
-  /* Send column */
-  .progress { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
-  .progress > div { height: 100%; width: 0; background: var(--accent); transition: width 0.2s; }
-  .savebar { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13.5px; }
-  .nav { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; }
-  .card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
-  .card-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; font-size: 18px; }
-  .status { min-height: 20px; font-size: 13.5px; }
+  /* ------------------------------------------------------------ buttons: primary, secondary (default), tertiary */
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 8px 16px;
+    border: 0; border-radius: 10px; background: var(--accent-tint); color: var(--accent-ink);
+    font-size: 15px; font-weight: 600; line-height: 1.2; text-align: center; text-decoration: none; cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+  }
+  .btn:hover:not(:disabled) { background: var(--accent-tint-hover); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.primary { background: var(--accent); color: var(--on-accent); box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12); }
+  .btn.primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn.tertiary { background: transparent; padding-inline: 10px; }
+  .btn.tertiary:hover:not(:disabled) { background: var(--accent-tint); }
+  .btn.ghost { background: transparent; color: var(--text); padding-inline: 10px; }
+  .btn.ghost:hover:not(:disabled) { background: var(--surface-2); }
+  .btn.small { min-height: 34px; padding: 6px 12px; font-size: 14px; }
+  .btn.tertiary.small { padding-inline: 8px; }
+  .btn.large { min-height: 48px; padding: 12px 24px; font-size: 16px; }
+  .btn.icon-only { width: 40px; padding: 0; }
+  .btn[data-armed] { color: var(--err); }
+  .btn:focus-visible, .menu-item:focus-visible, .tabs button:focus-visible, .crumb:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+  @media (pointer: coarse) {
+    .btn, .btn.small { min-height: 44px; }
+    .btn.icon-only { width: 44px; }
+  }
+
+  /* ------------------------------------------------------------ form fields */
+  select, input[type="search"], input[type="text"], input[type="date"], input[type="time"] {
+    min-height: 40px; max-width: 100%; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 10px;
+    background: var(--surface); color: var(--text);
+  }
+  input[type="search"] { -webkit-appearance: none; appearance: none; }
+  select { cursor: pointer; }
+  input[type="checkbox"] { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--accent); cursor: pointer; }
+  :is(select, input, textarea):focus-visible { outline: none; border-color: var(--accent); box-shadow: var(--ring); }
+  .check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+  @media (pointer: coarse) {
+    /* 16px stops iOS zooming in when a field is tapped. */
+    select, input[type="search"], input[type="text"], input[type="date"], input[type="time"] { min-height: 44px; font-size: 16px; }
+  }
+
+  /* ------------------------------------------------------------ app bar and More menu */
+  .appbar { background: var(--surface); border-bottom: 1px solid var(--border); }
+  .appbar-inner {
+    display: flex; align-items: center; gap: 12px; max-width: 1120px; min-height: 60px; margin: 0 auto;
+    padding: 8px max(var(--gutter), env(safe-area-inset-right)) 8px max(var(--gutter), env(safe-area-inset-left));
+  }
+  .brand { display: flex; flex: 1; align-items: center; gap: 12px; min-width: 0; }
+  .logo { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border-radius: 10px;
+    background: var(--accent); color: var(--on-accent); }
+  .logo .icon { width: 20px; height: 20px; }
+  .brand-text { display: flex; flex-direction: column; min-width: 0; }
+  .crumb { display: inline-flex; align-items: center; gap: 2px; width: fit-content; padding: 1px 0; border-radius: 4px;
+    color: var(--muted); font-size: 12px; font-weight: 500; text-decoration: none; }
+  .crumb:hover { color: var(--accent-ink); text-decoration: underline; }
+  .crumb .icon { width: 14px; height: 14px; }
+  .title { overflow: hidden; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; text-overflow: ellipsis; }
+  .appbar-actions { display: flex; align-items: center; gap: 4px; }
+  @media (max-width: 560px) {
+    .title { font-size: 16px; }
+    .more-label { display: none; }
+    #more-button { width: 40px; padding: 0; }
+  }
+  @media (max-width: 560px) and (pointer: coarse) { #more-button { width: 44px; } }
+
+  .menu-wrap { position: relative; }
+  .menu {
+    position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; display: grid; width: max-content;
+    min-width: 280px; max-width: min(380px, calc(100vw - 32px)); padding: 6px;
+    border-radius: 14px; background: var(--surface); box-shadow: var(--shadow-lg);
+  }
+  .menu-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 8px 12px; border: 0;
+    border-radius: 8px; background: none; color: var(--text); font-size: 14px; text-align: left; cursor: pointer; }
+  .menu-item .icon { color: var(--muted); }
+  .menu-item:hover, .menu-item:focus-visible { outline: none; background: var(--surface-2); }
+  .menu-item.danger, .menu-item.danger .icon { color: var(--err); }
+  .menu-sep { height: 1px; margin: 6px 4px; background: var(--border); }
+  @media (pointer: coarse) { .menu-item { min-height: 44px; } }
+
+  /* ------------------------------------------------------------ page, cards, notices */
+  .page {
+    max-width: 1120px; margin: 0 auto;
+    padding: 24px max(var(--gutter), env(safe-area-inset-right)) 32px max(var(--gutter), env(safe-area-inset-left));
+  }
+  @media (min-width: 641px) {
+    :root { --gutter: 24px; }
+    .page { padding-top: 32px; }
+  }
+  .card { padding: 24px; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+  .card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; margin-bottom: 16px; }
+  .card-head > div { display: grid; gap: 4px; }
+  .card-title { display: flex; align-items: center; gap: 10px; }
+  .num { display: inline-grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 50%;
+    background: var(--accent); color: var(--on-accent); font-size: 14px; font-weight: 700; letter-spacing: 0; }
+  @media (max-width: 640px) { .card { padding: 16px; border-radius: 14px; } }
+
+  .banner { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; padding: 12px 16px; border-radius: 12px; font-size: 14px; }
+  .banner > span { flex: 1; }
+  .banner .icon { margin-top: 2px; }
+  .banner .btn { margin: -6px -6px -6px 0; color: inherit; }
+  .banner.error { background: var(--err-tint); color: var(--err); }
+  .warn { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 8px; padding: 10px 12px; border-radius: 10px;
+    background: var(--warn-bg); color: var(--warn-text); font-size: 14px; }
+  .warn > span { flex: 1 1 200px; }
+  .warn .icon { margin-top: 2px; }
+  .warn .btn { margin: -6px -4px -6px auto; color: inherit; }
+  .warn .btn:hover:not(:disabled) { background: color-mix(in srgb, currentColor 12%, transparent); }
+  .note { padding: 10px 12px; border-radius: 10px; background: var(--info-bg); color: var(--info-text); font-size: 14px; }
+  .pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 99px; background: var(--surface-2);
+    color: var(--muted); font-size: 12.5px; font-weight: 600; line-height: 1.6; white-space: nowrap; }
+  .pill.ok { background: var(--ok-tint); color: var(--ok); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn-text); }
+
+  /* ------------------------------------------------------------ start screen */
+  .start { display: grid; gap: 24px; max-width: 720px; margin: 0 auto; }
+  .hero { display: grid; gap: 8px; text-align: center; }
+  .hero h2 { font-size: 28px; letter-spacing: -0.02em; }
+  .hero p { max-width: 560px; margin: 0 auto; font-size: 16px; }
+  .resume { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+  .resume p { flex: 1 1 260px; }
+  .round-icon { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 50%;
+    background: var(--accent-tint); color: var(--accent-ink); }
+  .dropzone { display: grid; justify-items: center; gap: 8px; padding: 40px 24px 28px; border: 2px dashed var(--border-strong);
+    border-radius: 20px; background: var(--surface); text-align: center; transition: border-color 0.15s, background-color 0.15s; }
+  .drop-icon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 8px; border-radius: 18px;
+    background: var(--accent-tint); color: var(--accent-ink); }
+  .drop-icon .icon { width: 30px; height: 30px; stroke-width: 1.75; }
+  .dropzone h3 { font-size: 19px; }
+  .dropzone .btn.large { margin-top: 12px; }
+  .drop-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 8px; margin-top: 16px; }
+  .touch-only { display: none; }
+  @media (hover: none) {
+    .touch-only { display: revert; }
+    .mouse-only { display: none; }
+  }
+  .dropzone.dragging, .drop-target.dragging { border-color: var(--accent); background: var(--accent-tint); }
+  .drop-target.dragging { outline: 2px dashed var(--accent); outline-offset: -2px; }
+  @media (max-width: 640px) {
+    .hero h2 { font-size: 22px; }
+    .hero p { font-size: 15px; }
+    .dropzone { padding: 28px 16px 20px; }
+  }
+
+  /* ------------------------------------------------------------ set-up: guests and the invitation on one page */
+  .setup { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); align-items: start; gap: 24px; }
+  @media (min-width: 901px) and (min-height: 760px) {
+    /* The guests card stays in view while the invitation scrolls; its list takes the room left above the bar. */
+    /* 200px: the app bar and page padding above it, the bottom bar and a gap below it. */
+    .guests-card { position: sticky; top: 24px; display: flex; flex-direction: column; max-height: calc(100vh - 200px); }
+    .guests-card .guest-list { flex: 1 1 auto; min-height: 160px; max-height: none; }
+  }
+  @media (max-width: 900px) { .setup { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
+
+  /* Guests */
+  .file-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 2px 2px 2px 10px;
+    border: 1px solid var(--border); border-radius: 99px; background: var(--surface-2); color: var(--muted); font-size: 13px; }
+  .file-name { overflow: hidden; color: var(--text); font-weight: 500; white-space: nowrap; text-overflow: ellipsis; }
+  .file-chip .btn { min-height: 28px; padding: 2px 10px; border-radius: 99px; font-size: 13px; white-space: nowrap; }
+  @media (pointer: coarse) { .file-chip .btn { min-height: 36px; } }
+  #column-notes { margin-top: 12px; }
+  .filters { display: grid; gap: 8px; margin-top: 16px; }
+  .search { position: relative; }
+  .search .icon { position: absolute; top: 50%; left: 12px; color: var(--muted); transform: translateY(-50%); pointer-events: none; }
+  .search input { width: 100%; padding-left: 38px; }
+  .list-tools { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 8px; }
+  .guest-list { max-height: max(260px, calc(100vh - 470px)); overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
+  @media (max-width: 900px) { .guest-list { max-height: 55vh; } }
+  .guest { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .guest:last-child { border-bottom: 0; }
+  .guest:hover { background: var(--surface-2); }
+  .guest:has(input:checked) { background: var(--accent-tint); }
+  .who { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+  .guest-name { font-weight: 600; }
+  .sub { color: var(--muted); font-size: 13px; }
+  .list-empty { padding: 20px 16px; color: var(--muted); text-align: center; }
+  #autosave-wrap { margin-top: 12px; }
+
+  /* Invitation: image, event details and message, split by thin lines */
+  .image-row { display: flex; align-items: center; gap: 16px; border-radius: 12px; }
+  .image-row.dragging { outline: 2px dashed var(--accent); outline-offset: 6px; background: var(--accent-tint); }
+  .thumb { width: 64px; height: 64px; flex: none; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); object-fit: cover; }
+  .thumb-empty { display: grid; place-items: center; border-style: dashed; color: var(--muted); }
+  .thumb-empty .icon { width: 24px; height: 24px; stroke-width: 1.5; }
+  .image-info { display: grid; flex: 1; gap: 6px; min-width: 0; }
+  .image-title { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+  .image-actions { display: flex; flex-wrap: wrap; gap: 4px; }
+  #image-note { margin-top: 8px; }
+  .invite-card .fold, .message-head { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  details.fold > summary { display: flex; align-items: center; gap: 8px; min-height: 32px; border-radius: 8px;
+    font-weight: 650; list-style: none; cursor: pointer; }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary > .icon { color: var(--accent-ink); }
+  details.fold > summary::after { content: ""; width: 8px; height: 8px; flex: none; margin: 0 6px 0 auto;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: translateY(-2px) rotate(45deg); transition: transform 0.15s; }
+  details.fold[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
+  details.fold[open] > summary { margin-bottom: 12px; }
+  .event-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .event-grid label { display: grid; gap: 4px; color: var(--muted); font-size: 13px; font-weight: 500; }
+  .event-grid input { width: 100%; }
+  .event-grid .wide2 { grid-column: span 2; }
+  .event-grid .wide { grid-column: 1 / -1; }
+  @media (max-width: 560px) {
+    .event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .event-grid .wide2 { grid-column: 1 / -1; }
+  }
+  @media (max-width: 380px) { .event-grid { grid-template-columns: minmax(0, 1fr); } }
+  .message-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+  .message-head h3 { display: flex; align-items: center; gap: 8px; }
+  .message-head h3 .icon { color: var(--accent-ink); }
+  .tabs { display: inline-flex; padding: 3px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+  .tabs button { min-height: 30px; padding: 4px 12px; border: 0; border-radius: 8px; background: none; color: var(--muted);
+    font-size: 14px; font-weight: 600; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+  @media (pointer: coarse) { .tabs button { min-height: 38px; } }
+  #template-warnings { margin-top: 12px; }
+
+  /* Editor */
+  .editor-shell { overflow: hidden; margin-top: 12px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); }
+  .editor-shell:focus-within { border-color: var(--accent); box-shadow: var(--ring); }
+  .editor-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 6px 8px;
+    border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  #toolbar.ql-toolbar.ql-snow { padding: 0; border: 0; font-family: inherit; }
+  .ql-snow.ql-toolbar button { border-radius: 6px; }
+  .ql-snow.ql-toolbar button:hover { background: var(--surface); }
+  .ql-snow .ql-stroke { stroke: var(--text); }
+  .ql-snow .ql-fill { fill: var(--text); }
+  .ql-snow.ql-toolbar button:hover .ql-stroke, .ql-snow.ql-toolbar button.ql-active .ql-stroke { stroke: var(--accent-ink); }
+  .ql-snow.ql-toolbar button:hover .ql-fill, .ql-snow.ql-toolbar button.ql-active .ql-fill { fill: var(--accent-ink); }
+  #insert-field { width: 230px; min-height: 32px; margin-left: auto; padding: 4px 10px; font-size: 13px; }
+  /* height:auto - Quill's own CSS stretches the box to the whole column (height:100%). */
+  #editor.ql-container.ql-snow { height: auto; border: 0; font: inherit; }
+  .ql-editor { min-height: 280px; max-height: calc(25 * 1.5em + 24px); overflow-y: auto; padding: 12px 16px;
+    color: var(--text); font-size: 15px; line-height: 1.5; }
+  .ql-editor.ql-blank::before { right: 16px; left: 16px; color: var(--muted); font-style: normal; }
+  .ql-snow .ql-editor code { padding: 0 3px; border-radius: 4px; background: var(--surface-2); }
+  .ql-snow .ql-editor blockquote { margin: 0; padding-left: 10px; border-left: 3px solid var(--border-strong); }
+  #plain { display: block; width: 100%; height: calc(25 * 1.5em + 24px); min-height: 280px; padding: 12px 16px; border: 0;
+    background: var(--surface); color: var(--text); line-height: 1.5; resize: vertical; }
+  #plain:focus-visible { box-shadow: none; }
+  .editor-help { margin-top: 8px; }
+  #preview-panel { margin-top: 12px; }
+  .editor-foot { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+  @media (pointer: coarse) {
+    .ql-editor { font-size: 16px; }
+    .ql-snow.ql-toolbar button { width: 36px; height: 36px; padding: 6px 8px; }
+  }
+
+  /* WhatsApp-style preview: outgoing bubbles on the chat background */
+  .chat { display: grid; justify-items: end; gap: 6px; padding: 12px; border-radius: 12px; background: var(--chat-bg); }
+  .chat > * { max-width: 94%; min-width: 0; }
+  .chat.scroll { max-height: calc(25 * 1.5em + 24px); overflow-y: auto; }
+  .img-bubble { padding: 3px; border-radius: 8px; background: var(--bubble); box-shadow: 0 1px 1px rgba(0, 0, 0, 0.13); }
+  .img-bubble img { display: block; max-width: 100%; max-height: 240px; border-radius: 6px; }
+
+  /* The bar under the set-up page: what's selected, and Start sending */
+  .action-bar {
+    position: sticky; bottom: 16px; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+    margin-top: 24px; padding: 12px 12px 12px 20px; border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-lg);
+  }
+  .bar-summary { display: flex; flex: 1 1 220px; flex-direction: column; min-width: 0; font-size: 13px; }
+  .bar-summary strong { font-size: 15px; }
+  .bar-issues { color: var(--warn-text); }
+  .bar-issues:hover:not(:disabled) { background: var(--warn-bg); }
+  @media (max-width: 640px) {
+    .action-bar { bottom: max(8px, env(safe-area-inset-bottom)); padding: 12px; }
+    .bar-summary { flex-basis: 100%; padding: 0 4px; }
+    #start-sending { flex: 1 1 auto; }
+  }
+  /* While typing on a touch screen, the bar stops floating over the keyboard. */
+  @media (pointer: coarse) {
+    body:has(:is(input[type="text"], input[type="search"], textarea, .ql-editor):focus) .action-bar { position: static; }
+  }
+
+  /* ------------------------------------------------------------ send mode: one guest at a time */
+  .send-panel { display: grid; gap: 12px; }
+  .send-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .send-top .btn { margin-left: -8px; }
+  .progress-text { font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .progress { height: 6px; overflow: hidden; border-radius: 99px; background: var(--border); }
+  .progress > div { width: 0; height: 100%; border-radius: 99px; background: var(--accent); transition: width 0.25s; }
+  .send-save { display: flex; flex-wrap: wrap; align-items: center; gap: 0 8px; color: var(--muted); font-size: 13px; }
+  .send-save .btn { margin-block: -6px; }
+  .summary-card { display: grid; justify-items: center; gap: 8px; padding: 32px 24px; text-align: center; }
+  .done-icon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 4px; border-radius: 50%;
+    background: var(--ok-tint); color: var(--ok); }
+  .done-icon .icon { width: 32px; height: 32px; }
+  .summary-card h2 { font-size: 22px; }
+  .summary-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
+  /* On a computer, two columns: the guest and the buttons on the left (they stay in view), the message on the right. */
+  .send-layout { display: grid; grid-template-columns: minmax(340px, 420px) minmax(0, 1fr); align-items: start; gap: 24px; margin-top: 4px; }
+  .send-side { display: grid; gap: 16px; }
+  @media (min-width: 901px) and (min-height: 640px) { .send-side { position: sticky; top: 24px; } }
+  @media (min-width: 901px) { .send-preview .img-bubble img { max-height: 160px; } } /* more of the message in view */
+  .send-info { display: grid; gap: 16px; }
+  .send-preview { display: grid; gap: 12px; }
+  .nav { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; }
+  .nav select { width: 100%; }
+  .guest-who { display: grid; gap: 4px; }
+  .guest-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .guest-head h2 { font-size: 22px; }
+  .guest-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--muted); font-size: 14px; }
+  .guest-meta b { color: var(--text); }
+  .send-actions { display: grid; gap: 8px; }
+  .send-steps { display: grid; gap: 8px; }
+  .btn.step { justify-content: flex-start; width: 100%; }
+  .step .key-hint { margin-left: auto; }
+  .step-no { display: inline-grid; place-items: center; width: 22px; height: 22px; flex: none; border-radius: 50%;
+    background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; }
+  .step-no .icon { width: 13px; height: 13px; stroke-width: 3; }
+  .primary .step-no { background: var(--on-accent); color: var(--accent); }
+  .step.done .step-no { background: var(--ok); color: var(--surface); }
+  .label-short { display: none; }
+  .status { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 8px; min-height: 21px; font-size: 14px; }
+  .status > span { flex: 1 1 200px; }
+  .status .icon { margin-top: 2px; }
+  .status .btn { margin: -6px 0; color: inherit; }
+  .status.hint { color: var(--muted); }
   .status.ok { color: var(--ok); }
   .status.err { color: var(--err); }
-  pre.raw { white-space: pre-wrap; font-size: 13px; background: var(--panel); border-radius: 8px; padding: 10px; }
+  .plain-text summary { cursor: pointer; }
+  pre.raw { margin: 8px 0 0; padding: 12px; border-radius: 10px; background: var(--surface-2); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .shortcuts { text-align: center; }
+  @media (max-width: 900px) {
+    /* One column: the guest, the message, and the buttons floating at the bottom of the screen, within reach of a thumb. */
+    .send-panel { max-width: 540px; margin: 0 auto; }
+    .send-layout { display: flex; flex-direction: column; align-items: stretch; gap: 12px; margin-top: 0; }
+    .send-side { display: contents; }
+    .send-preview { order: 2; }
+    .send-actions { position: sticky; bottom: max(8px, env(safe-area-inset-bottom)); z-index: 10; order: 3; padding: 12px;
+      box-shadow: var(--shadow-lg); }
+    .send-steps { display: flex; }
+    .send-steps .step { flex: 1 1 0; flex-direction: column; justify-content: center; gap: 4px; min-height: 60px; padding: 8px 4px;
+      font-size: 13px; }
+    .send-steps .step > .icon { display: none; }
+    .label-long { display: none; }
+    .label-short { display: inline; }
+    .status.hint { display: none; }
+  }
+  @media (max-width: 640px) { #send-save-text { display: none; } }
+  @media (max-width: 900px), (hover: none) { .key-hint, .shortcuts { display: none !important; } }
 
-  #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--text); color: var(--bg);
-    padding: 8px 16px; border-radius: 99px; font-size: 14px; opacity: 0; transition: opacity 0.2s; pointer-events: none; }
-  #toast.show { opacity: 0.92; }
+  /* ------------------------------------------------------------ footer, dialog, toast */
+  .privacy { display: flex; align-items: flex-start; justify-content: center; gap: 8px; max-width: 520px; margin: 40px auto 0;
+    color: var(--muted); font-size: 13px; }
+  .privacy .icon { margin-top: 2px; }
+  dialog { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); padding: 0;
+    border: 0; border-radius: 18px; background: var(--surface); color: var(--text); box-shadow: var(--shadow-lg); }
+  dialog::backdrop { background: rgba(16, 24, 40, 0.5); }
+  .dialog-body { display: grid; gap: 16px; padding: 24px; }
+  .dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  .dialog-head .btn { margin: -8px -8px 0 0; }
+  .help-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .help-table th, .help-table td { padding: 8px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  .help-table th { color: var(--muted); font-size: 13px; font-weight: 600; }
+  .help-table td:first-child { width: 30%; }
+  .help-table td:nth-child(2) { width: 1%; color: var(--muted); white-space: nowrap; }
+  @media (max-width: 640px) { .dialog-body { padding: 20px 16px; } }
+  #toast { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 50%; z-index: 60; max-width: calc(100vw - 32px);
+    padding: 10px 18px; border-radius: 99px; background: var(--text); color: var(--surface); box-shadow: var(--shadow-lg);
+    font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none; transform: translate(-50%, -12px); transition: opacity 0.2s, transform 0.2s; }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  }
 </style>
 </head>
 <body>
@@ -197,6 +515,7 @@
   <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
   <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-ellipsis" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
   <symbol id="i-flask" viewBox="0 0 24 24"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></symbol>
@@ -205,7 +524,6 @@
   <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
   <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
   <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
-  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></symbol>
   <symbol id="i-send" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></symbol>
   <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
   <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
@@ -220,187 +538,281 @@
   <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
   <symbol id="i-list-checks" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
-  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
-  <symbol id="i-folder" viewBox="0 0 24 24"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
   <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
 </svg>
-<div class="page">
-  <div class="topbar">
-    <a class="back-link" href="https://vinothhaldorai.com/apps/" title="vinothhaldorai.com/apps"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg> Back to all apps</a>
-    <button id="theme-toggle" class="icon-button" type="button"><svg class="icon" aria-hidden="true"><use id="theme-icon" href="#i-sun"/></svg></button>
+
+<header class="appbar">
+  <div class="appbar-inner">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"><svg class="icon"><use href="#i-mail"/></svg></span>
+      <div class="brand-text">
+        <a class="crumb" href="https://vinothhaldorai.com/apps/" title="vinothhaldorai.com/apps"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg>Back to all apps</a>
+        <h1 class="title">Event Invitation Generator</h1>
+      </div>
+    </div>
+    <div class="appbar-actions">
+      <button id="theme-toggle" class="btn ghost icon-only" type="button"><svg class="icon" aria-hidden="true"><use id="theme-icon" href="#i-sun"/></svg></button>
+      <div class="menu-wrap">
+        <button id="more-button" class="btn ghost" type="button" aria-label="More actions" aria-haspopup="menu" aria-expanded="false" aria-controls="more-menu"><svg class="icon" aria-hidden="true"><use href="#i-ellipsis"/></svg><span class="more-label">More</span></button>
+        <div id="more-menu" class="menu" role="menu" aria-label="More actions" hidden>
+          <button type="button" class="menu-item" role="menuitem" id="menu-open-list"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg><span id="menu-open-label">Upload guest list (.xlsx)</span></button>
+          <button type="button" class="menu-item" role="menuitem" id="menu-download-updated"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download updated guest list (.xlsx)</button>
+          <button type="button" class="menu-item" role="menuitem" id="menu-download-original"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download original guest list (backup)</button>
+          <button type="button" class="menu-item" role="menuitem" id="menu-download-all"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download all selected guests' messages (.txt)</button>
+          <button type="button" class="menu-item" role="menuitem" id="menu-download-blank"><svg class="icon" aria-hidden="true"><use href="#i-sheet"/></svg>Download blank guest list template (.xlsx)</button>
+          <div class="menu-sep" role="separator"></div>
+          <button type="button" class="menu-item" role="menuitem" id="menu-help"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg>What should my Excel guest list look like?</button>
+          <div class="menu-sep" role="separator"></div>
+          <button type="button" class="menu-item danger" role="menuitem" id="clear-data" title="Removes the guest list, message, image, event details and progress kept in this browser"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg><span class="label">Clear data saved in this browser</span></button>
+        </div>
+      </div>
+    </div>
   </div>
-  <h1><span class="logo"><svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg></span>Event Invitation Generator</h1>
-  <p class="subtitle">Personalised WhatsApp invitations from your Excel guest list, one guest at a time.</p>
-  <div class="row">
-    <button id="open-list" class="primary"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg> Upload guest list (.xlsx)</button>
-    <input type="file" id="list-input" accept=".xlsx" hidden>
-    <button id="download-blank"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download blank guest list template (.xlsx)</button>
-    <button id="try-sample" hidden><svg class="icon" aria-hidden="true"><use href="#i-flask"/></svg> Try with a sample guest list</button>
-    <span id="file-name" class="muted row"></span>
-    <button id="clear-data" class="link push-right" title="Removes the guest list, message, image, event details and progress kept in this browser"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg> Clear data saved in this browser</button>
+</header>
+
+<main class="page">
+  <div id="error" class="banner error" role="alert" hidden>
+    <svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>
+    <span id="error-text"></span>
+    <button type="button" id="error-close" class="btn tertiary small">Dismiss</button>
   </div>
-  <details id="format-help" class="box" open>
-    <summary><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg> What should my Excel guest list look like?</summary>
-    <p class="caption">Put the column headers on <b>row 2</b> of the first sheet; guests start on row 3. The easiest start is
-      <b>Download blank guest list template</b>.</p>
+
+  <!-- Start: no guest list yet -->
+  <section id="view-start" class="start">
+    <div class="hero">
+      <h2 tabindex="-1">Personalised WhatsApp invitations, one guest at a time</h2>
+      <p class="muted">Choose guests from your Excel list, write the message once, then copy each invitation into WhatsApp yourself.</p>
+    </div>
+    <div id="resume" class="card resume" hidden>
+      <span class="round-icon"><svg class="icon" aria-hidden="true"><use href="#i-rotate"/></svg></span>
+      <p id="resume-text"></p>
+      <div class="row">
+        <button type="button" id="resume-yes" class="btn primary"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Resume where I left off</button>
+        <button type="button" id="resume-no" class="btn tertiary">Start fresh</button>
+      </div>
+    </div>
+    <div id="dropzone" class="dropzone">
+      <span class="drop-icon"><svg class="icon" aria-hidden="true"><use href="#i-sheet"/></svg></span>
+      <h3><span class="mouse-only">Drop your Excel guest list here</span><span class="touch-only">Choose your Excel guest list</span></h3>
+      <p class="muted small mouse-only">or choose the file on your computer</p>
+      <button type="button" id="open-list" class="btn primary large"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>Upload guest list (.xlsx)</button>
+      <input type="file" id="list-input" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+      <div class="drop-links">
+        <button type="button" id="try-sample" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-flask"/></svg>Try with a sample guest list</button>
+        <button type="button" id="download-blank" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download blank guest list template (.xlsx)</button>
+        <button type="button" id="show-help" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg>What should my Excel guest list look like?</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Set up: the guests and the invitation, on one page -->
+  <section id="view-setup" hidden>
+    <div class="setup">
+      <div id="guests-card" class="card guests-card drop-target">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title" tabindex="-1"><span class="num">1</span>Choose guests</h2>
+            <p id="breakdown" class="muted small"></p>
+          </div>
+          <span class="file-chip" title="The guest list you're working on">
+            <svg class="icon" aria-hidden="true"><use href="#i-sheet"/></svg><span id="file-name" class="file-name"></span>
+            <button type="button" id="change-list" class="btn tertiary">Change file</button>
+          </span>
+        </div>
+        <p id="column-notes" class="note" hidden></p>
+        <div class="filters">
+          <select id="category" aria-label="Show guests from this category"></select>
+          <div class="search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="search" id="search" placeholder="Search guests by name" aria-label="Search guests by name"></div>
+        </div>
+        <div class="list-tools">
+          <button type="button" id="select-visible" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-list-checks"/></svg><span id="select-visible-label">Select all shown</span></button>
+          <button type="button" id="clear-selection" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Clear selection</button>
+        </div>
+        <div id="guest-list" class="guest-list"></div>
+        <label id="autosave-wrap" class="check" hidden><input type="checkbox" id="autosave"> <span id="autosave-label"></span></label>
+      </div>
+
+      <div class="card invite-card">
+        <div class="card-head"><h2 class="card-title"><span class="num">2</span>Write the invitation</h2></div>
+
+        <div id="image-row" class="image-row">
+          <img id="image-thumb" class="thumb" alt="Invite image" hidden>
+          <span id="image-empty" class="thumb thumb-empty"><svg class="icon" aria-hidden="true"><use href="#i-image"/></svg></span>
+          <div class="image-info">
+            <div class="image-title">
+              <h3>Invite image</h3>
+              <label id="image-ui" class="check" hidden><input type="checkbox" id="attach-image" checked> Send it before the text</label>
+              <span id="no-image" class="caption">No image yet: invites will be text only.</span>
+            </div>
+            <div class="image-actions">
+              <button type="button" id="image-upload" class="btn small"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg><span id="image-upload-label">Upload invite image</span></button>
+              <input type="file" id="image-input" accept="image/png,image/jpeg,image/webp" hidden>
+              <button type="button" id="download-image" class="btn tertiary small" hidden><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download image</button>
+              <button type="button" id="remove-image" class="btn tertiary small" hidden><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Remove image</button>
+            </div>
+          </div>
+        </div>
+        <p id="image-note" class="caption" hidden>This image is too large to keep in the browser, so you'll need to upload it again next time.</p>
+
+        <details id="event-box" class="fold">
+          <summary><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>Event details <span id="event-summary" class="pill"></span></summary>
+          <div class="stack">
+            <p class="caption">Fill these in once: they replace the matching [blanks] in the message, such as [Date] and [Address], for every guest.</p>
+            <div class="event-grid">
+              <label class="wide2">Event name<input id="ev-name" type="text" placeholder="e.g. 1st birthday party"></label>
+              <label>Date<input id="ev-date" type="date"></label>
+              <label>Start time<input id="ev-start" type="time"></label>
+              <label>End time (optional)<input id="ev-end" type="time"></label>
+              <label>Host name<input id="ev-host" type="text" placeholder="e.g. Host-1 &amp; family"></label>
+              <label class="wide">Address<input id="ev-address" type="text" placeholder="Venue name and full address"></label>
+            </div>
+            <div id="other-blanks" class="event-grid"></div>
+            <div class="row">
+              <button type="button" id="insert-map-link" class="btn small"><svg class="icon" aria-hidden="true"><use href="#i-map-pin"/></svg>Insert map link</button>
+              <button type="button" id="insert-calendar-link" class="btn small"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>Insert “Add to calendar” link</button>
+            </div>
+            <p class="caption">The links go in at the cursor as [Map link] and [Calendar link], and are filled in from the address, date and time.</p>
+          </div>
+        </details>
+
+        <div class="message-head">
+          <h3><svg class="icon" aria-hidden="true"><use href="#i-message"/></svg>Message</h3>
+          <div id="tabs" class="tabs" role="tablist" aria-label="Message">
+            <button type="button" role="tab" id="tab-write" aria-selected="true" aria-controls="write-panel">Edit</button>
+            <button type="button" role="tab" id="tab-preview" aria-selected="false" aria-controls="preview-panel" tabindex="-1">WhatsApp preview</button>
+          </div>
+        </div>
+        <div id="template-warnings" class="stack"></div>
+        <div id="write-panel" role="tabpanel" aria-labelledby="tab-write">
+          <div class="editor-shell">
+            <div class="editor-bar">
+              <div id="toolbar">
+                <span class="ql-formats">
+                  <button class="ql-bold" title="Bold (⌘B / Ctrl+B)"></button>
+                  <button class="ql-italic" title="Italic (⌘I / Ctrl+I)"></button>
+                  <button class="ql-strike" title="Strikethrough (⌘⇧X / Ctrl+Shift+X)"></button>
+                  <button class="ql-code" title="Monospace"></button>
+                </span>
+                <span class="ql-formats">
+                  <button class="ql-list" value="bullet" title="Bulleted list"></button>
+                  <button class="ql-list" value="ordered" title="Numbered list"></button>
+                  <button class="ql-blockquote" title="Quote"></button>
+                </span>
+                <span class="ql-formats"><button class="ql-clean" title="Clear formatting"></button></span>
+              </div>
+              <!-- Outside #toolbar on purpose: Quill would restyle any <select> inside it. -->
+              <select id="insert-field" aria-label="Insert a guest detail"><option value="">+ Insert a guest detail</option></select>
+            </div>
+            <div id="editor"></div>
+            <textarea id="plain" hidden aria-label="Message"></textarea>
+          </div>
+          <p class="caption editor-help">Select text and use the toolbar. When you paste from Word, Google Docs or email, bold, italic and
+            strikethrough are kept; other styling is dropped (WhatsApp can't show it).</p>
+        </div>
+        <div id="preview-panel" role="tabpanel" aria-labelledby="tab-preview" hidden>
+          <p id="preview-label" class="caption"></p>
+          <div class="chat scroll" style="margin-top:8px">
+            <div id="preview-img-bubble" class="img-bubble" hidden><img id="preview-img" alt="Invite image"></div>
+            <div id="preview-text"></div>
+          </div>
+        </div>
+        <div class="editor-foot">
+          <button type="button" id="upload-template" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg>Upload a saved message (.txt)</button>
+          <input type="file" id="template-input" accept=".txt,.md,text/plain" hidden>
+          <button type="button" id="download-template" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download this message (.txt)</button>
+          <button type="button" id="reset-template" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-rotate"/></svg><span class="label">Replace with the sample message</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <div class="bar-summary"><strong id="bar-main"></strong><span id="bar-sub" class="muted"></span></div>
+      <button type="button" id="bar-issues" class="btn tertiary bar-issues" hidden><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg><span id="bar-issues-label"></span></button>
+      <button type="button" id="start-sending" class="btn primary"></button>
+    </div>
+  </section>
+
+  <!-- Send: one guest at a time. On a computer the buttons sit beside the message. -->
+  <section id="view-send" hidden>
+    <div class="send-panel">
+      <div class="send-top">
+        <button type="button" id="exit-send" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back to guests &amp; message</button>
+        <span id="progress-text" class="progress-text"></span>
+      </div>
+      <div class="progress" aria-hidden="true"><div id="progress-bar"></div></div>
+      <p id="send-save" class="send-save" hidden><span id="send-save-text"></span><button type="button" id="send-download" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download updated guest list</button></p>
+      <div id="summary" class="card summary-card" hidden>
+        <span class="done-icon"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg></span>
+        <h2 id="summary-title" tabindex="-1"></h2>
+        <p id="summary-counts" class="muted"></p>
+        <p id="summary-save"></p>
+        <div class="summary-actions">
+          <button type="button" id="summary-download" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download updated guest list (.xlsx)</button>
+          <button type="button" id="summary-more" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>Invite more guests</button>
+        </div>
+      </div>
+      <div class="send-layout">
+        <div class="send-side">
+          <article class="card send-info" aria-labelledby="card-name">
+            <div class="nav">
+              <button type="button" id="prev" class="btn icon-only" aria-label="Previous guest" title="Previous guest (←)"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
+              <select id="picker" aria-label="Go to guest"></select>
+              <button type="button" id="next" class="btn icon-only" aria-label="Next guest" title="Next guest (→)"><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+            </div>
+            <div class="guest-who">
+              <div class="guest-head"><h2 id="card-name" tabindex="-1"></h2><span id="card-status" class="pill ok" hidden></span></div>
+              <p class="guest-meta"><span>WhatsApp contact: <b id="card-contact"></b></span><span id="card-category" class="pill" hidden></span></p>
+            </div>
+            <div id="card-warnings" class="stack"></div>
+          </article>
+          <div id="send-actions" class="card send-actions">
+            <p id="copy-status" class="status hint" aria-live="polite"></p>
+            <div class="send-steps">
+              <button type="button" id="copy-name" class="btn step"><span class="step-no">1</span><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><span class="label-long">Copy contact name</span><span class="label-short">Copy name</span><kbd class="key-hint">1</kbd></button>
+              <button type="button" id="copy-image" class="btn step"><span class="step-no">2</span><svg class="icon" aria-hidden="true"><use href="#i-image"/></svg><span class="label-long">Copy invite image</span><span class="label-short">Copy image</span><kbd class="key-hint">2</kbd></button>
+              <button type="button" id="copy-text" class="btn step"><span class="step-no">3</span><svg class="icon" aria-hidden="true"><use href="#i-message"/></svg><span class="label-long">Copy message text</span><span class="label-short">Copy text</span><kbd class="key-hint">3</kbd></button>
+            </div>
+            <button type="button" id="mark-sent" class="btn primary step"><span class="step-no">4</span><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>Mark as sent &amp; go to next guest</span></button>
+            <button type="button" id="undo-sent" class="btn step" hidden><svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg><span>Undo: mark as not sent</span></button>
+          </div>
+          <p class="shortcuts caption">Keyboard: <span id="shortcut-keys"></span> to copy, <kbd>Enter</kbd> to mark as sent, <kbd>←</kbd> <kbd>→</kbd> to change guest</p>
+        </div>
+        <div class="card send-preview">
+          <p id="card-caption" class="caption"></p>
+          <div class="chat">
+            <div id="card-img-bubble" class="img-bubble" hidden><img id="card-img" alt="Invite image"></div>
+            <div id="card-text"></div>
+          </div>
+          <details class="plain-text"><summary class="caption">Show the plain text (to copy by hand)</summary><pre id="raw-text" class="raw"></pre></details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="privacy"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg><span>Everything stays in this browser; nothing is uploaded to a server.</span></footer>
+</main>
+
+<dialog id="help-dialog" aria-labelledby="help-title">
+  <div class="dialog-body">
+    <div class="dialog-head">
+      <h2 id="help-title">What should my Excel guest list look like?</h2>
+      <button type="button" id="help-close" class="btn ghost icon-only" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <p>Put the column headers on <b>row 2</b> of the first sheet; guests start on row 3. The easiest start is the blank guest list template.</p>
     <table class="help-table">
       <tr><th>Column</th><th></th><th>What it's for</th></tr>
-      <tr><td><code>Addressable Names</code></td><td>Required</td><td>The greeting, e.g. “Ravi &amp; Priya”. It's <code>{name}</code> in the message.</td></tr>
+      <tr><td><code>Addressable Names</code></td><td>Required</td><td>The greeting, e.g. “Guest-1 &amp; family”. It's <code>{name}</code> in the message.</td></tr>
       <tr><td><code>Add to Invite List?</code></td><td>Required</td><td><code>Yes</code> to include the guest (Y, TRUE and ✓ also work).</td></tr>
       <tr><td><code>Name</code></td><td>Optional</td><td>Their name as saved in WhatsApp, copied for searching.</td></tr>
       <tr><td><code>Category</code></td><td>Optional</td><td>Family, Friends, Work… to send in groups.</td></tr>
       <tr><td><code>Invited?</code>, <code>Invited On</code></td><td>Optional</td><td>Filled in for you when you mark a guest as sent.</td></tr>
       <tr><td>Any other column</td><td>Optional</td><td>Use it in the message as <code>{Column name}</code>, e.g. <code>{Adults}</code>.</td></tr>
     </table>
-  </details>
-  <p class="caption row"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> Everything stays in this browser; nothing is uploaded to a server.</p>
-  <div id="resume" class="info row" hidden style="margin-top:10px">
-    <span id="resume-text"></span>
-    <button id="resume-yes" class="primary"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg> Resume where I left off</button>
-    <button id="resume-no">Start fresh</button>
+    <div class="row"><button type="button" id="help-download-blank" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download blank guest list template (.xlsx)</button></div>
   </div>
-  <div id="error" class="error" hidden style="margin-top:10px"><span id="error-text"></span><button class="link" id="error-close">Dismiss</button></div>
-
-  <div class="columns">
-    <!-- 1. Guests -->
-    <section class="stack">
-      <h2><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg> 1. Select guests</h2>
-      <p id="guests-empty" class="info">Upload your guest list to start, or download the blank guest list template, fill it in and upload it.</p>
-      <div id="guests-ui" class="stack" hidden>
-        <p id="breakdown" class="info"></p>
-        <p id="column-notes" class="muted" hidden></p>
-        <select id="category" aria-label="Show guests from this category"></select>
-        <input type="search" id="search" placeholder="Search guests by name" aria-label="Search guests by name">
-        <div class="row choice-buttons"><button id="select-visible"><svg class="icon" aria-hidden="true"><use href="#i-list-checks"/></svg> Select all shown</button><button id="clear-selection"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg> Clear selection</button></div>
-        <div id="guest-list" class="checklist"></div>
-        <p id="selected-summary"></p>
-      </div>
-    </section>
-
-    <!-- 2. Invite image, event details & message -->
-    <section>
-      <h2><svg class="icon" aria-hidden="true"><use href="#i-pen"/></svg> 2. Invite image &amp; message</h2>
-      <div class="image-bar">
-        <img id="image-thumb" class="mini-thumb" alt="Invite image" hidden>
-        <div class="image-info">
-          <div class="row">
-            <strong class="row"><svg class="icon" aria-hidden="true"><use href="#i-image"/></svg> Invite image</strong>
-            <label id="image-ui" hidden><input type="checkbox" id="attach-image" checked> Send it before the text</label>
-            <span id="no-image" class="caption">No image yet: invites will be text only.</span>
-          </div>
-          <div class="row">
-            <label class="file-button"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg> <span id="image-upload-label">Upload invite image</span><input type="file" id="image-input" accept="image/png,image/jpeg,image/webp" hidden></label>
-            <button id="download-image" hidden><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download image</button>
-            <button id="remove-image" hidden><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg> Remove image</button>
-          </div>
-          <span id="image-note" class="caption" hidden>This image is too large to keep in the browser, so you'll need to upload it again next time.</span>
-        </div>
-      </div>
-      <details id="event-box" class="box" style="margin:0 0 12px">
-        <summary><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg> Event details <span id="event-summary" class="caption"></span></summary>
-        <p class="caption">Fill these in once: they replace the matching [blanks] in the message, such as [Date] and [Address], for every guest.</p>
-        <div class="event-grid">
-          <label class="wide">Event name<input id="ev-name" type="text" placeholder="e.g. Aarav's 1st birthday party"></label>
-          <label>Date<input id="ev-date" type="date"></label>
-          <label>Host name<input id="ev-host" type="text" placeholder="e.g. Vinoth &amp; family"></label>
-          <label>Start time<input id="ev-start" type="time"></label>
-          <label>End time (optional)<input id="ev-end" type="time"></label>
-          <label class="wide">Address<input id="ev-address" type="text" placeholder="Venue name and full address"></label>
-        </div>
-        <div id="other-blanks" class="event-grid"></div>
-        <div class="row" style="margin-top:10px">
-          <button id="insert-map-link"><svg class="icon" aria-hidden="true"><use href="#i-map-pin"/></svg> Insert map link</button>
-          <button id="insert-calendar-link"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg> Insert “Add to calendar” link</button>
-        </div>
-        <p class="caption">The links are added at the cursor as [Map link] and [Calendar link], and filled in from the address, date and time.</p>
-      </details>
-      <div id="template-warnings" class="stack" style="margin-bottom:10px"></div>
-      <div id="toolbar">
-        <span class="ql-formats">
-          <button class="ql-bold" title="Bold (⌘B / Ctrl+B)"></button>
-          <button class="ql-italic" title="Italic (⌘I / Ctrl+I)"></button>
-          <button class="ql-strike" title="Strikethrough (⌘⇧X / Ctrl+Shift+X)"></button>
-          <button class="ql-code" title="Monospace"></button>
-        </span>
-        <span class="ql-formats">
-          <button class="ql-list" value="bullet" title="Bulleted list"></button>
-          <button class="ql-list" value="ordered" title="Numbered list"></button>
-          <button class="ql-blockquote" title="Quote"></button>
-        </span>
-        <span class="ql-formats"><button class="ql-clean" title="Clear formatting"></button></span>
-      </div>
-      <!-- Outside #toolbar on purpose: Quill would restyle any <select> inside it. -->
-      <div class="insert-bar">
-        <select id="insert-field" aria-label="Insert a guest detail"><option value="">+ Insert a guest detail (name, column…)</option></select>
-      </div>
-      <div id="editor"></div>
-      <textarea id="plain" hidden aria-label="Message"></textarea>
-      <p class="caption">Select text and use the toolbar. When you paste from Word, Google Docs or email, bold, italic and
-        strikethrough are kept; other styling is dropped (WhatsApp can't show it).</p>
-
-      <details class="box">
-        <summary><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg> Preview: how WhatsApp will show it</summary>
-        <p class="caption" id="preview-label"></p>
-        <div id="preview" class="scroll-box"></div>
-      </details>
-      <details class="box">
-        <summary><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg> Upload or download this message</summary>
-        <div class="row" style="margin-top:8px">
-          <label class="file-button"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg> Upload a saved message (.txt)<input type="file" id="template-input" accept=".txt,.md,text/plain" hidden></label>
-          <button id="download-template"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download this message (.txt)</button>
-          <button id="reset-template"><svg class="icon" aria-hidden="true"><use href="#i-rotate"/></svg> Replace with the sample message</button>
-        </div>
-        <p class="caption">Your message is also kept in this browser automatically.</p>
-      </details>
-    </section>
-
-    <!-- 3. Copy & send -->
-    <section class="stack">
-      <h2><svg class="icon" aria-hidden="true"><use href="#i-send"/></svg> 3. Copy &amp; send</h2>
-      <div id="savebar" class="savebar stack" hidden>
-        <div id="save-status"></div>
-        <div class="row">
-          <button id="download-updated"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download updated guest list (.xlsx)</button>
-          <label id="autosave-wrap" hidden><input type="checkbox" id="autosave"> <span id="autosave-label"></span></label>
-          <button id="download-original" class="link"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download original guest list (backup)</button>
-        </div>
-      </div>
-      <p id="send-empty" class="info">Select guests in column 1 to start.</p>
-      <div id="send-ui" class="stack" hidden>
-        <div class="progress"><div id="progress-bar"></div></div>
-        <p id="progress-text"></p>
-        <p id="all-done" class="success row" hidden><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg> All selected guests are marked as sent.</p>
-        <div class="nav">
-          <button id="prev" title="Previous guest"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg> Previous</button>
-          <select id="picker" aria-label="Guest"></select>
-          <button id="next" title="Next guest">Next <svg class="icon" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
-        </div>
-        <div class="card stack">
-          <div class="card-head"><strong id="card-name"></strong><span id="card-status" class="sent-badge"></span></div>
-          <p class="muted">WhatsApp contact: <b id="card-contact"></b></p>
-          <div class="steps">
-            <button id="copy-name"><span class="step-no">1</span><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg> Copy contact name</button>
-            <button id="copy-image"><span class="step-no">2</span><svg class="icon" aria-hidden="true"><use href="#i-image"/></svg> Copy invite image</button>
-            <button id="copy-text"><span class="step-no">3</span><svg class="icon" aria-hidden="true"><use href="#i-message"/></svg> Copy message text</button>
-            <button id="mark-sent" class="primary wide"><span class="step-no">4</span><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Mark as sent &amp; go to next guest</button>
-            <button id="undo-sent" class="wide" hidden><svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg> Undo: mark as not sent</button>
-          </div>
-          <p id="copy-status" class="status" aria-live="polite"></p>
-          <p id="steps" class="caption">Paste each copy into the guest's WhatsApp chat (⌘V / Ctrl+V) and send it.</p>
-          <div id="card-warnings" class="stack"></div>
-          <div id="post-image" class="post-row" hidden><img id="card-image" class="mini-thumb" alt="Invite image"><span class="caption">Post 1: the invite image</span></div>
-          <p class="caption" id="post-text-label">Post 2: the message</p>
-          <div id="card-preview" class="scroll-box"></div>
-          <details><summary class="caption">Show the plain text (to copy by hand)</summary><pre id="raw-text" class="raw"></pre></details>
-        </div>
-        <button id="download-all"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download all selected guests' messages (.txt)</button>
-      </div>
-    </section>
-  </div>
-
-</div>
-<div id="toast" role="status"></div>
+</dialog>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -421,8 +833,6 @@
   const KEYS = {
     template: "invite.template", image: "invite.image", session: "invite.session", theme: "invite.theme", event: "invite.event",
   };
-  const SAMPLE_LIST = "data/WhatsApp Invite List dummy.xlsx";
-  const SAMPLE_IMAGE = "data/WhatsApp Invite.png";
   const DEFAULT_TEMPLATE = [
     "*Subject: Invitation to [Event Name] 🎉*",
     "",
@@ -443,13 +853,41 @@
     "*[Host Name]*",
     "",
   ].join("\n");
+  // The guest list's columns, in order, with their widths in Excel.
+  const COLUMNS = [
+    ["Name", 22], ["Category", 14], ["Addressable Names", 24], ["Estimated Count", 15], ["Adults", 9],
+    ["Kids (Below 8)", 15], ["Add to Invite List?", 19], ["Invited?", 11], ["Invited On", 19], ["Notes", 30],
+  ];
+  // "Try with a sample guest list": numbered guests, in the order of COLUMNS. Built here rather
+  // than loaded from a file, so the sample also works when index.html is opened straight from disk.
+  const SAMPLE_GUESTS = [
+    ["Guest-1", "Family", "Guest-1", 4, 2, 2, "Yes"],
+    ["Guest-2", "Family", "Guest-2", 2, 2, 0, "Yes"],
+    ["Guest-3", "Family", "Guest-3", 5, 3, 2, "Yes"],
+    ["Guest-4", "Family", "Guest-4", 1, 1, 0, "Yes", "Yes", null, "Invited in person"],
+    ["Guest-5", "Friends", "Guest-5", 3, 2, 1, "Yes"],
+    ["Guest-6", "Friends", "Guest-6", 1, 1, 0, "Yes"],
+    ["Guest-7", "Friends", "Guest-7", 4, 2, 2, "Yes", null, null, "Vegetarian"],
+    ["Guest-8", "Work", "Guest-8", 1, 1, 0, "Yes"],
+    ["Guest-9", "Work", "Guest-9", 3, 2, 1, "Yes"],
+    ["Guest-10", "Work", "Guest-10", 2, 2, 0, "No", null, null, "Away that weekend"],
+    ["Guest-11", "Neighbours", "Guest-11", 3, 2, 1, "Yes"],
+    ["Guest-12", "Neighbours", "Guest-12", 1, 1, 0, "Yes"],
+  ];
+  const VIEWS = ["start", "setup", "send"];
+  // The send steps in order (numbered on screen and on the keyboard); the image step
+  // drops out when no image is attached.
+  const SEND_STEPS = ["copy-name", "copy-image", "copy-text", "mark-sent"];
+  const COPY_HINT = "Copy each item, then paste it into the guest's WhatsApp chat and send it.";
 
   const state = {
+    view: "start", // start (no list yet) | setup (guests and invitation) | send (one guest at a time)
     workbook: null, // ExcelJS workbook: the working copy, updated by "Mark sent"
     bytes: null, // latest workbook bytes
     bytesB64: null,
     original: null, // bytes as opened, for "Download original"
     fileName: "",
+    sample: false, // the sample guest list: its progress isn't saved
     handle: null, // file handle when opened with the file picker (Chrome/Edge), to save back
     autoSave: false,
     changed: false, // the workbook has changes not yet downloaded or saved to the file
@@ -461,6 +899,7 @@
     search: "",
     selected: [], // Excel row numbers, in selection order
     current: null,
+    copied: new Set(), // send steps already done for the current guest
     sent: new Set(),
     prev: {}, // row -> {invited, invitedOn} before "Mark sent", for Undo
     template: "",
@@ -469,6 +908,9 @@
     image: null, // {name, type, dataUrl, png}
     attach: true,
   };
+
+  const menu = $("more-menu");
+  const menuButton = $("more-button");
 
   // ---------------------------------------------------------------- utilities
 
@@ -483,6 +925,8 @@
     for (const child of children) node.append(child);
     return node;
   }
+
+  const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
   function showError(message) {
     $("error-text").textContent = message;
@@ -521,6 +965,20 @@
     return bytes;
   }
 
+  // Replaces a node's content only when it changes, so a click in progress isn't lost.
+  function setContent(node, key, ...children) {
+    if (node.dataset.key === key) return;
+    node.dataset.key = key;
+    node.replaceChildren(...children);
+  }
+
+  // Only when it changes: the image is a large data URL, decoded again on every change.
+  function setSrc(img, url) {
+    if (img.getAttribute("src") !== url) img.src = url;
+  }
+
+  const scrollBehaviour = () => (window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
+
   // Theme: the device setting, unless the toggle picked the other one (<html data-theme>).
   const root = document.documentElement;
   const deviceDark = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -558,8 +1016,17 @@
     return svg;
   }
 
-  function warning(text) {
-    return el("p", { className: "warn" }, iconEl("alert"), el("span", { textContent: text }));
+  // action: {label, run}, a button that fixes the problem
+  function actionButton(action) {
+    const button = el("button", { type: "button", className: "btn tertiary small", textContent: action.label });
+    button.addEventListener("click", action.run);
+    return button;
+  }
+
+  function warning(text, action) {
+    const box = el("div", { className: "warn" }, iconEl("alert"), el("span", { textContent: text }));
+    if (action) box.append(actionButton(action));
+    return box;
   }
 
   const timeZone = (() => {
@@ -574,22 +1041,28 @@
   const messageFor = (guest) => W.renderMessage(W.fillBlanks(state.template, eventValues()), guest);
   const fmtNumber = (n) => (Number.isInteger(n) ? n : +n.toFixed(2)).toLocaleString();
   const baseName = () => state.fileName.replace(/\.xlsx$/i, "") || "Guest list";
+  const withImage = () => Boolean(state.image && state.attach);
+  const sentRows = () => state.selected.filter((r) => state.sent.has(r));
+  const allSent = () => state.selected.length > 0 && sentRows().length === state.selected.length;
 
   // Two-step buttons instead of confirm() dialogs.
   function confirmClick(button, label, action) {
-    const original = button.textContent;
+    const text = button.querySelector(".label") || button;
+    const original = text.textContent;
+    let timer = null;
     button.addEventListener("click", () => {
+      clearTimeout(timer);
       if (button.dataset.armed) {
         delete button.dataset.armed;
-        button.textContent = original;
+        text.textContent = original;
         action();
         return;
       }
       button.dataset.armed = "1";
-      button.textContent = label;
-      setTimeout(() => {
+      text.textContent = label;
+      timer = setTimeout(() => {
         delete button.dataset.armed;
-        button.textContent = original;
+        text.textContent = original;
       }, 3000);
     });
   }
@@ -673,7 +1146,7 @@
     return guests;
   }
 
-  async function openWorkbook(bytes, fileName, { handle = null, session = null } = {}) {
+  async function openWorkbook(bytes, fileName, { handle = null, session = null, sample = false } = {}) {
     if (!window.ExcelJS) throw new Error("the Excel library couldn't load. Check the internet connection and reload the page");
     const workbook = new window.ExcelJS.Workbook();
     await workbook.xlsx.load(bytes);
@@ -686,8 +1159,9 @@
     const guests = readGuests(sheet, cols);
     const sent = new Set(session ? session.sent : []);
     const byRow = new Map(guests.map((g) => [g.row, g]));
+    const before = state.view;
     Object.assign(state, {
-      workbook, cols, guests, byRow, fileName, handle,
+      workbook, cols, guests, byRow, fileName, handle, sample,
       autoSave: false,
       changed: Boolean(session && session.changed),
       bytes: new Uint8Array(bytes),
@@ -698,18 +1172,20 @@
       sent,
       selected: session ? session.selected.filter((r) => byRow.has(r)) : [],
       current: session ? session.current : null,
+      copied: new Set(),
       prev: session ? restorePrev(session.prev) : {},
       category: (session && session.category) || "",
       search: "",
+      // A resumed session reopens sending if that's where it was left ("done" came from an older version).
+      view: session && (session.view === "send" || session.view === "done") ? "send" : "setup",
     });
     $("search").value = "";
-    $("format-help").open = false; // the format help has done its job once a list is loaded
     $("autosave").checked = false;
     $("error").hidden = true;
     $("resume").hidden = true;
     fillInsertField();
     renderAll();
-    saveSession();
+    showView({ push: false, moved: state.view !== before });
   }
 
   // Adds a header (styled like "Addressable Names") in the next free column.
@@ -745,7 +1221,7 @@
       const pos = state.selected.indexOf(row);
       const upcoming = [...state.selected.slice(pos + 1), ...state.selected.slice(0, pos)];
       const next = upcoming.find((r) => !state.sent.has(r));
-      if (next !== undefined) state.current = next;
+      if (next !== undefined) setCurrent(next);
     } else {
       const before = state.prev[row] || { invited: null, invitedOn: null };
       invited.value = before.invited;
@@ -753,8 +1229,14 @@
       delete state.prev[row];
       state.sent.delete(row);
     }
+    renderGuests();
     renderMessages();
-    renderSaveBar();
+    renderSaving();
+    // Everyone's done: the summary appears at the top of the send screen.
+    if (sent && allSent() && state.view === "send") {
+      window.scrollTo(0, 0);
+      $("summary-title").focus({ preventScroll: true });
+    }
     await saveWorkbook();
   }
 
@@ -776,33 +1258,35 @@
           } catch (err) {
             state.autoSave = false;
             $("autosave").checked = false;
-            showError(`Couldn't save into ${state.fileName} (${err.message}). Use "Download updated list" instead.`);
+            showError(`Couldn't save into ${state.fileName} (${err.message}). Use "Download updated guest list" instead.`);
           }
         }
         saveSession();
-        renderSaveBar();
+        renderSaving();
       })
       .catch((err) => showError(`Couldn't update the guest list: ${err.message}`));
     return saving;
   }
 
-  async function blankTemplate() {
+  // The guest list layout the app reads: the blank template (no guests) or the sample.
+  async function guestListWorkbook(guests = []) {
     const workbook = new window.ExcelJS.Workbook();
     const sheet = workbook.addWorksheet("Invite List", { views: [{ state: "frozen", ySplit: HEADER_ROW }] });
-    const columns = [
-      ["Name", 22], ["Category", 14], ["Addressable Names", 24], ["Estimated Count", 15], ["Adults", 9],
-      ["Kids (Below 8)", 15], ["Add to Invite List?", 19], ["Invited?", 11], ["Invited On", 19], ["Notes", 30],
-    ];
     sheet.getCell("A1").value = "Add guests from row 3 · keep the headers in row 2";
     sheet.getCell("A1").font = { italic: true, color: { argb: "FF666666" } };
-    columns.forEach(([title, width], i) => {
+    COLUMNS.forEach(([title, width], i) => {
       const cell = sheet.getCell(HEADER_ROW, i + 1);
       cell.value = title;
       cell.font = { bold: true };
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9EAD3" } };
       sheet.getColumn(i + 1).width = width;
     });
-    const letter = (title) => String.fromCharCode(65 + columns.findIndex(([t]) => t === title));
+    guests.forEach((values, i) => {
+      values.forEach((value, c) => {
+        if (value !== null && value !== undefined) sheet.getCell(HEADER_ROW + 1 + i, c + 1).value = value;
+      });
+    });
+    const letter = (title) => String.fromCharCode(65 + COLUMNS.findIndex(([t]) => t === title));
     for (const title of ["Estimated Count", "Adults", "Kids (Below 8)"]) {
       const c = letter(title);
       sheet.getCell(`${c}1`).value = { formula: `SUBTOTAL(9,${c}3:${c}1000)` };
@@ -822,7 +1306,7 @@
       "How to fill in this guest list",
       "",
       "1. Add one guest (or family) per row, starting at row 3. Keep the headers in row 2 exactly as they are.",
-      '2. Addressable Names (required): how the invite greets them, e.g. "Ravi & Priya". It is {name} in the message.',
+      '2. Addressable Names (required): how the invite greets them, e.g. "Guest-1 & family". It is {name} in the message.',
       "3. Name: the contact's name as saved in WhatsApp - the app's \"Copy contact name\" button copies it for WhatsApp search.",
       "4. Add to Invite List? (required): choose Yes to include the guest.",
       '5. Invited? and Invited On: leave blank - the app fills them in when you click "Mark as sent".',
@@ -834,6 +1318,48 @@
     help.getCell("A1").font = { bold: true, size: 13 };
     help.getColumn(1).width = 110;
     return workbook.xlsx.writeBuffer();
+  }
+
+  // A stand-in invite image for the sample, drawn here so the sample needs no files.
+  function sampleImage() {
+    const canvas = el("canvas", { width: 1080, height: 1350 });
+    const ctx = canvas.getContext("2d");
+    const background = ctx.createLinearGradient(0, 0, 1080, 1350);
+    background.addColorStop(0, "#d9fdd3");
+    background.addColorStop(1, "#8ad8c4");
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, 1080, 1350);
+    let seed = 11; // fixed seed: the same confetti every time
+    const random = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const colours = ["#008069", "#f59e0b", "#ef4444", "#3b82f6", "#a855f7"];
+    ctx.globalAlpha = 0.5;
+    for (let i = 0; i < 80; i++) {
+      ctx.fillStyle = colours[i % colours.length];
+      ctx.beginPath();
+      ctx.arc(random() * 1080, random() * 1350, 6 + random() * 14, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(110, 345, 860, 660, 48);
+    else ctx.rect(110, 345, 860, 660);
+    ctx.fill();
+    const font = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#008069";
+    ctx.font = `700 40px ${font}`;
+    ctx.fillText("YOU’RE INVITED", 540, 470);
+    ctx.fillStyle = "#111b21";
+    ctx.font = `800 104px ${font}`;
+    ctx.fillText("Your invite", 540, 625);
+    ctx.fillText("image here", 540, 745);
+    ctx.fillStyle = "#667085";
+    ctx.font = `500 38px ${font}`;
+    ctx.fillText("A sample: upload your own", 540, 880);
+    ctx.fillText("image to replace it", 540, 932);
+    return new Promise((resolve, reject) =>
+      canvas.toBlob((png) => (png ? resolve(png) : reject(new Error("couldn't draw the sample image"))), "image/png"));
   }
 
   // ------------------------------------------------------------- persistence
@@ -860,7 +1386,8 @@
   function saveSession() {
     clearTimeout(sessionTimer);
     sessionTimer = setTimeout(() => {
-      if (!state.workbook) return;
+      // The sample isn't saved, so it never replaces a real session waiting to be resumed.
+      if (!state.workbook || state.sample) return;
       if (!state.bytesB64) state.bytesB64 = toB64(state.bytes);
       const session = {
         fileName: state.fileName,
@@ -872,6 +1399,7 @@
         prev: serializePrev(state.prev),
         category: state.category,
         changed: state.changed,
+        view: state.view,
         savedAt: Date.now(),
       };
       if (!store.set(KEYS.session, JSON.stringify(session))) {
@@ -897,6 +1425,7 @@
     $("resume-text").textContent =
       `Unfinished session: “${session.fileName}”, ${done} of ${session.selected.length} selected guests sent (saved ${when}).`;
     $("resume").hidden = false;
+    $("open-list").classList.remove("primary"); // one main action at a time
     $("resume-yes").onclick = async () => {
       try {
         await openWorkbook(fromB64(session.workbook), session.fileName, { session });
@@ -907,6 +1436,7 @@
     $("resume-no").onclick = () => {
       store.remove(KEYS.session);
       $("resume").hidden = true;
+      $("open-list").classList.add("primary");
     };
   }
 
@@ -948,6 +1478,10 @@
       showError(`Couldn't read the image: ${err.message}`);
     }
     renderAll();
+  }
+
+  async function downloadImage() {
+    downloadBlob(await (await fetch(state.image.dataUrl)).blob(), state.image.name);
   }
 
   // ------------------------------------------------------------------ editor
@@ -995,6 +1529,7 @@
   }
 
   function insertAtCursor(text) {
+    showTab("write");
     if (quill) {
       const range = quill.getSelection(true);
       quill.insertText(range.index, text, "user");
@@ -1071,7 +1606,7 @@
   function fillInsertField() {
     const select = $("insert-field");
     select.replaceChildren(
-      el("option", { value: "", textContent: "+ Insert a guest detail (name, column…)" }),
+      el("option", { value: "", textContent: "+ Insert a guest detail" }),
       el("option", { value: "{name}", textContent: "{name}: the greeting (Addressable Names)" })
     );
     if (!state.cols) return;
@@ -1079,6 +1614,18 @@
     for (const c of state.cols.all) {
       if (!skip.has(c.key)) select.append(el("option", { value: `{${c.header}}`, textContent: `{${c.header}}` }));
     }
+  }
+
+  // "Edit" and "WhatsApp preview" share the message's place on the page.
+  function showTab(name) {
+    const write = name === "write";
+    $("tab-write").setAttribute("aria-selected", String(write));
+    $("tab-preview").setAttribute("aria-selected", String(!write));
+    $("tab-write").tabIndex = write ? 0 : -1;
+    $("tab-preview").tabIndex = write ? -1 : 0;
+    $("write-panel").hidden = !write;
+    $("preview-panel").hidden = write;
+    if (!write) flushEdit();
   }
 
   // ------------------------------------------------------------------ copying
@@ -1100,10 +1647,47 @@
     }
   }
 
-  function copyStatus(message, ok) {
+  // No message: shows the how-to hint. action: an optional {label, run} button.
+  function copyStatus(message, ok, action) {
     const status = $("copy-status");
-    status.textContent = message;
+    if (!message) {
+      status.className = "status hint";
+      status.replaceChildren(el("span", { textContent: COPY_HINT }));
+      return;
+    }
     status.className = `status ${ok ? "ok" : "err"}`;
+    status.replaceChildren(iconEl(ok ? "check-circle" : "alert"), el("span", { textContent: message }));
+    if (action) status.append(actionButton(action));
+  }
+
+  // ------------------------------------------------------------------- views
+
+  // Shows a view as a new browser history entry, so the Back button returns to the previous one.
+  function go(view) {
+    const before = state.view;
+    state.view = view;
+    renderView();
+    showView({ push: true, moved: state.view !== before });
+  }
+
+  function showView({ push, moved }) {
+    closeMenu();
+    const entry = { view: state.view };
+    if (push && moved) history.pushState(entry, "");
+    else history.replaceState(entry, "");
+    if (moved) {
+      window.scrollTo(0, 0);
+      const headings = $(`view-${state.view}`).querySelectorAll("h2[tabindex]");
+      const heading = [...headings].find((h) => h.offsetParent !== null); // the first one on screen
+      if (heading) heading.focus({ preventScroll: true });
+    }
+    saveSession();
+  }
+
+  function renderView() {
+    if (!state.workbook) state.view = "start";
+    else if (state.view !== "send" || !state.selected.length) state.view = "setup";
+    for (const name of VIEWS) $(`view-${name}`).hidden = name !== state.view;
   }
 
   // ---------------------------------------------------------------- rendering
@@ -1128,19 +1712,22 @@
     return state.cols.counts.map((c, i) => `${c.header}: ${fmtNumber(sums[i])}`).join(" · ");
   }
 
-  function renderGuests() {
-    const loaded = Boolean(state.workbook);
-    $("guests-empty").hidden = loaded;
-    $("guests-ui").hidden = !loaded;
-    $("file-name").replaceChildren(...(loaded ? [iconEl("sheet"), state.fileName] : []));
-    if (!loaded) return;
+  // The guest the previews are shown for.
+  function sampleGuest() {
+    if (state.selected.length) return state.byRow.get(state.selected[0]);
+    return state.available[0] || { name: "Guest Name", fields: {} };
+  }
 
+  function renderGuests() {
+    if (!state.workbook) return;
+    $("file-name").textContent = state.fileName;
     const marked = state.guests.filter((g) => g.toInvite);
     const already = marked.filter((g) => g.invited && !state.sent.has(g.row)).length;
-    $("breakdown").textContent =
-      `Marked to invite: ${marked.length} · Already invited: ${already} · Available: ${state.available.length}`;
+    $("breakdown").textContent = `${plural(state.available.length, "guest")} to invite` +
+      (already ? ` · ${already} already invited (not shown)` : "");
 
     const notes = [];
+    if (state.sample) notes.push("This is the sample guest list, to try things out. Its progress isn't kept after you close the page.");
     if (!state.cols.invite) notes.push("No 'Add to Invite List?' column, so everyone is shown.");
     if (!state.cols.invited) notes.push("No 'Invited?' column yet. It will be added when you mark a guest as sent.");
     $("column-notes").textContent = notes.join(" ");
@@ -1163,41 +1750,64 @@
     const list = $("guest-list");
     const selected = new Set(state.selected);
     const visible = visibleGuests();
+    $("select-visible-label").textContent = `Select all shown (${visible.length})`;
     list.replaceChildren(
       ...visible.map((g) => {
         const box = el("input", { type: "checkbox", checked: selected.has(g.row) });
         box.addEventListener("change", () => toggleGuest(g.row, box.checked));
-        const who = el("span", { className: "who" }, el("span", { textContent: guestLabel(g) }));
+        const who = el("span", { className: "who" }, el("span", { className: "guest-name", textContent: guestLabel(g) }));
         const sub = [g.contact !== g.name ? g.contact : "", state.cols.category && !state.category ? g.category : ""].filter(Boolean);
         if (sub.length) who.append(el("span", { className: "sub", textContent: sub.join(" · ") }));
-        return el("label", {}, box, who);
+        const row = el("label", { className: "guest" }, box, who);
+        if (state.sent.has(g.row)) row.append(el("span", { className: "pill ok" }, iconEl("check"), "Sent"));
+        return row;
       })
     );
-    if (!visible.length) list.append(el("p", { className: "muted", textContent: "No guests match.", style: "padding:8px 10px;margin:0" }));
-
-    renderSummary();
+    if (!visible.length) {
+      const empty = state.available.length ? "No guests match."
+        : marked.length ? "Everyone marked Yes is already invited."
+          : "No guests are marked Yes in “Add to Invite List?”.";
+      list.append(el("p", { className: "list-empty", textContent: empty }));
+    }
   }
 
-  function renderSummary() {
-    const totals = headcount(state.selected);
-    $("selected-summary").textContent =
-      `Selected: ${state.selected.length} invite${state.selected.length === 1 ? "" : "s"}${totals ? ` · ${totals}` : ""}`;
+  function messageIssues() {
+    const keys = state.cols ? state.cols.all.map((c) => c.key) : [];
+    return W.templateIssues(W.fillBlanks(state.template, eventValues()), keys);
   }
 
-  // Shown once, here (not on every guest's card).
+  function openEventDetails() {
+    const box = $("event-box");
+    box.open = true;
+    box.scrollIntoView({ block: "start", behavior: scrollBehaviour() });
+  }
+
+  // Shown once, next to the message (the send card only shows what's specific to its guest).
   function renderTemplateWarnings() {
     const box = $("template-warnings");
     box.replaceChildren();
-    const keys = state.cols ? state.cols.all.map((c) => c.key) : [];
-    const issues = W.templateIssues(W.fillBlanks(state.template, eventValues()), keys);
+    const issues = messageIssues();
     if (issues.brackets.length) {
-      box.append(warning(`Still to fill in: ${issues.brackets.join(", ")}. Add them under Event details above.`));
+      box.append(warning(`Still to fill in: ${issues.brackets.join(", ")}.`, { label: "Fill in event details", run: openEventDetails }));
     }
     if (state.cols && issues.unknown.length) {
       box.append(warning(`No column called ${issues.unknown.join(", ")}, so it will be sent as typed.`));
     }
     if (issues.missingName) {
       box.append(warning("No {name} in the message, so every guest gets the same greeting."));
+    }
+    // {Columns} that are empty for some of the selected guests
+    const empty = new Map();
+    for (const row of state.selected) {
+      const guest = state.byRow.get(row);
+      for (const field of W.emptyFields(state.template, guest)) {
+        if (!empty.has(field)) empty.set(field, []);
+        empty.get(field).push(guest.name);
+      }
+    }
+    for (const [field, names] of empty) {
+      const shown = names.slice(0, 3).join(", ") + (names.length > 3 ? ` and ${names.length - 3} more` : "");
+      box.append(warning(`${field} is empty for ${plural(names.length, "selected guest")} (${shown}), so it will be blank in their message.`));
     }
   }
 
@@ -1233,21 +1843,50 @@
       );
     }
     const left = W.templateBlanks(W.fillBlanks(state.template, eventValues())).length;
-    $("event-summary").textContent = !blanks.length
-      ? "(the message has no [blanks])"
-      : left
-        ? `(${blanks.length - left} of ${blanks.length} [blanks] filled in)`
-        : `(all ${blanks.length} [blanks] filled in ✓)`;
+    const summary = $("event-summary");
+    summary.className = `pill${!blanks.length ? "" : left ? " warn" : " ok"}`;
+    summary.textContent = !blanks.length ? "No [blanks]"
+      : left ? `${blanks.length - left} of ${blanks.length} filled in` : `All ${blanks.length} filled in`;
+  }
+
+  // A WhatsApp-style preview: the image bubble (when attached) and the text bubble.
+  function renderChat(prefix, message) {
+    $(`${prefix}-img-bubble`).hidden = !withImage();
+    if (withImage()) setSrc($(`${prefix}-img`), state.image.dataUrl);
+    $(`${prefix}-text`).innerHTML = W.whatsappPreviewHtml(message, isDark());
   }
 
   function renderMessages() {
     renderEventPanel();
     renderTemplateWarnings();
-    const first = state.selected.length ? state.byRow.get(state.selected[0]) : null;
-    const sample = first || { name: "Guest Name", fields: {} };
-    $("preview-label").textContent = `Preview for ${sample.name}:`;
-    $("preview").innerHTML = W.whatsappPreviewHtml(messageFor(sample), isDark());
+    const sample = sampleGuest();
+    $("preview-label").textContent = `How the invitation looks for ${sample.name}${withImage() ? ": the image, then the message" : ""}.`;
+    renderChat("preview", messageFor(sample));
     renderCard();
+    renderSummary();
+    renderBar();
+  }
+
+  // The bar under the set-up page: what's selected, what's left to fix, and Start sending.
+  function renderBar() {
+    const total = state.selected.length;
+    const sent = sentRows().length;
+    $("bar-main").textContent = total ? `${plural(total, "guest")} selected` : "No guests selected yet";
+    const sub = total ? [sent ? `${sent} already sent` : "", headcount(state.selected)].filter(Boolean).join(" · ")
+      : "Tick the guests to invite in the list.";
+    $("bar-sub").textContent = sub;
+    $("bar-sub").hidden = !sub;
+
+    const issues = messageIssues();
+    const others = (state.cols ? issues.unknown.length : 0) + (issues.missingName ? 1 : 0);
+    const count = issues.brackets.length + others;
+    $("bar-issues").hidden = !count;
+    $("bar-issues-label").textContent = others ? `Fix ${plural(count, "issue")} in the message` : `Fill in ${plural(count, "blank")}`;
+
+    const button = $("start-sending");
+    button.disabled = !total;
+    const label = !sent ? "Start sending" : sent === total ? "Show summary" : `Continue sending (${total - sent} left)`;
+    setContent(button, label, iconEl(total && sent === total ? "check-circle" : "send"), el("span", { textContent: label }));
   }
 
   function renderImage() {
@@ -1256,41 +1895,59 @@
     $("download-image").hidden = !has;
     $("remove-image").hidden = !has;
     $("image-thumb").hidden = !has;
-    if (has) $("image-thumb").src = state.image.dataUrl;
+    $("image-empty").hidden = has;
+    if (has) setSrc($("image-thumb"), state.image.dataUrl);
     $("image-upload-label").textContent = has ? "Change image" : "Upload invite image";
     $("no-image").hidden = has && state.attach;
     $("no-image").textContent = has ? "Not attached: invites will be text only." : "No image yet: invites will be text only.";
   }
 
-  function renderSaveBar() {
-    $("savebar").hidden = !state.workbook;
+  function renderSaving() {
     if (!state.workbook) return;
     const canSave = Boolean(state.handle && window.showOpenFilePicker);
     $("autosave-wrap").hidden = !canSave;
     $("autosave-label").textContent = `Also save changes straight into ${state.fileName}`;
-    $("download-original").hidden = !state.original;
-    let status;
-    if (state.autoSave) status = `💾 Changes are saved straight into ${state.fileName}.`;
-    else if (state.changed) status = "Changes are kept in this browser. Download the updated guest list to keep them in Excel.";
-    else status = "No changes yet. Marking a guest as sent fills in Invited? and Invited On.";
-    $("save-status").textContent = status;
-    $("download-updated").classList.toggle("primary", state.changed && !state.autoSave);
+    // Mid-way through sending; once everyone's sent, the summary offers the download instead.
+    $("send-save").hidden = allSent() || (!state.autoSave && !state.changed);
+    $("send-save-text").textContent = state.autoSave ? `Saving straight into ${state.fileName}.` : "Progress is kept in this browser.";
+    $("send-download").hidden = state.autoSave;
+    renderSummary();
+    renderMenu();
+  }
+
+  const sendSteps = () => SEND_STEPS.filter((id) => id !== "copy-image" || withImage());
+
+  function setCurrent(row) {
+    if (row === state.current) return;
+    state.current = row;
+    state.copied = new Set();
+    copyStatus("");
+  }
+
+  // Numbered steps (the number is also the keyboard shortcut); a done step shows a tick.
+  function renderSteps() {
+    const steps = sendSteps();
+    $("copy-image").hidden = !steps.includes("copy-image");
+    steps.forEach((id, i) => {
+      const button = $(id);
+      const done = state.copied.has(id);
+      button.classList.toggle("done", done);
+      setContent(button.querySelector(".step-no"), done ? "done" : String(i + 1), done ? iconEl("check") : String(i + 1));
+      if (id !== "mark-sent") button.querySelector(".key-hint").textContent = String(i + 1);
+    });
+    const keys = steps.slice(0, -1).map((id, i) => el("kbd", { textContent: String(i + 1) }));
+    $("shortcut-keys").replaceChildren(...keys.flatMap((key, i) => (i ? [" ", key] : [key])));
   }
 
   function renderCard() {
-    const has = state.selected.length > 0;
-    $("send-empty").hidden = has;
-    $("send-ui").hidden = !has;
-    if (!has) return;
-
+    if (!state.selected.length) return;
     if (!state.selected.includes(state.current)) {
-      state.current = state.selected.find((r) => !state.sent.has(r)) ?? state.selected[0];
+      setCurrent(state.selected.find((r) => !state.sent.has(r)) ?? state.selected[0]);
     }
-    const sentCount = state.selected.filter((r) => state.sent.has(r)).length;
-    $("progress-bar").style.width = `${(100 * sentCount) / state.selected.length}%`;
-    const sentTotals = headcount(state.selected.filter((r) => state.sent.has(r)));
-    $("progress-text").textContent = `${sentCount} of ${state.selected.length} sent${sentTotals ? ` · ${sentTotals}` : ""}`;
-    $("all-done").hidden = sentCount !== state.selected.length;
+    const total = state.selected.length;
+    const sent = sentRows().length;
+    $("progress-bar").style.width = `${(100 * sent) / total}%`;
+    $("progress-text").textContent = `${sent} of ${total} sent`;
 
     const picker = $("picker");
     picker.replaceChildren(
@@ -1300,41 +1957,67 @@
     picker.value = String(state.current);
     const pos = state.selected.indexOf(state.current);
     $("prev").disabled = pos <= 0;
-    $("next").disabled = pos >= state.selected.length - 1;
+    $("next").disabled = pos >= total - 1;
 
     const guest = state.byRow.get(state.current);
     const message = messageFor(guest);
     const isSent = state.sent.has(guest.row);
-    const withImage = Boolean(state.image && state.attach);
     $("card-name").textContent = guest.name;
     const sentAt = isSent ? invitedOnText(guest.row) : "";
+    $("card-status").hidden = !isSent;
     $("card-status").replaceChildren(...(isSent ? [iconEl("check-circle"), `Sent${sentAt ? ` ${sentAt}` : ""}`] : []));
     $("card-contact").textContent = guest.contact;
-    $("copy-image").hidden = !withImage;
-    // Numbered steps; without an image the image step drops out.
-    ["copy-name", ...(withImage ? ["copy-image"] : []), "copy-text", "mark-sent"].forEach((id, i) => {
-      $(id).querySelector(".step-no").textContent = String(i + 1);
-    });
+    $("card-category").hidden = !guest.category;
+    $("card-category").textContent = guest.category;
     $("mark-sent").hidden = isSent;
     $("undo-sent").hidden = !isSent;
-    $("post-image").hidden = !withImage;
-    $("post-text-label").hidden = !withImage;
-    if (withImage) $("card-image").src = state.image.dataUrl;
-    $("card-preview").innerHTML = W.whatsappPreviewHtml(message, isDark());
+    renderSteps();
+    $("card-caption").textContent = withImage() ? "Preview: the image and the message go as two posts" : "Preview of the message";
+    renderChat("card", message);
     $("raw-text").textContent = message;
 
-    // Only what's specific to this guest; message-wide warnings are shown once, in column 2.
+    // Only what's specific to this guest; message-wide warnings are shown next to the editor.
     const warnings = $("card-warnings");
     warnings.replaceChildren();
     const empty = W.emptyFields(state.template, guest);
     if (empty.length) warnings.append(warning(`${empty.join(", ")} ${empty.length === 1 ? "is" : "are"} empty for ${guest.name}.`));
   }
 
+  // At the top of the send screen once every selected guest is marked as sent.
+  function renderSummary() {
+    const done = Boolean(state.workbook) && allSent();
+    $("summary").hidden = !done;
+    if (!done) return;
+    const total = state.selected.length;
+    $("summary-title").textContent = total === 1 ? "The invitation is marked as sent" : `All ${total} invitations are marked as sent`;
+    const totals = headcount(sentRows());
+    $("summary-counts").textContent = totals;
+    $("summary-counts").hidden = !totals;
+    $("summary-save").textContent = state.autoSave
+      ? `Saved straight into ${state.fileName}: Invited? and Invited On are filled in.`
+      : state.changed
+        ? "Download the updated guest list to keep Invited? and Invited On in your Excel file."
+        : "Up to date: nothing new since your last download.";
+    const needsDownload = !state.autoSave && state.changed;
+    $("summary-download").classList.toggle("primary", needsDownload);
+    $("summary-more").classList.toggle("primary", !needsDownload);
+  }
+
+  function renderMenu() {
+    const loaded = Boolean(state.workbook);
+    $("menu-open-label").textContent = loaded ? "Upload a different guest list (.xlsx)" : "Upload guest list (.xlsx)";
+    $("menu-download-updated").hidden = !loaded;
+    $("menu-download-original").hidden = !(loaded && state.original);
+    $("menu-download-all").hidden = !state.selected.length;
+  }
+
   function renderAll() {
+    renderView();
     renderGuests();
     renderImage();
-    renderSaveBar();
+    renderSaving();
     renderMessages();
+    renderMenu();
     saveSession();
   }
 
@@ -1343,8 +2026,8 @@
   // Ticking a box leaves the checklist as it is (keeps focus and scroll position).
   function toggleGuest(row, on) {
     state.selected = on ? [...state.selected.filter((r) => r !== row), row] : state.selected.filter((r) => r !== row);
-    renderSummary();
     renderMessages();
+    renderMenu();
     saveSession();
   }
 
@@ -1356,7 +2039,8 @@
     }
   }
 
-  $("open-list").addEventListener("click", async () => {
+  // Chrome and Edge keep a handle to the file, so changes can be saved straight into it.
+  async function pickGuestList() {
     if (!window.showOpenFilePicker) {
       $("list-input").click();
       return;
@@ -1369,39 +2053,65 @@
       return;
     }
     await loadFile(await handle.getFile(), handle);
-  });
+  }
 
+  async function downloadUpdated() {
+    await saving; // include a "Mark as sent" that is still being written
+    downloadBlob(state.bytes, `${baseName()} - updated.xlsx`, XLSX_TYPE);
+    if (!state.autoSave) {
+      state.changed = false;
+      renderSaving();
+      saveSession();
+    }
+  }
+
+  async function downloadBlank() {
+    try {
+      downloadBlob(await guestListWorkbook(), "Guest List Template.xlsx", XLSX_TYPE);
+    } catch (err) {
+      showError(`Couldn't create the template: ${err.message}`);
+    }
+  }
+
+  function openHelp() {
+    closeMenu();
+    $("help-dialog").showModal();
+  }
+
+  for (const id of ["open-list", "change-list", "menu-open-list"]) $(id).addEventListener("click", pickGuestList);
   $("list-input").addEventListener("change", (event) => {
     const file = event.target.files[0];
     event.target.value = "";
     if (file) loadFile(file, null);
   });
-
-  $("download-blank").addEventListener("click", async () => {
-    try {
-      downloadBlob(await blankTemplate(), "Guest List Template.xlsx", XLSX_TYPE);
-    } catch (err) {
-      showError(`Couldn't create the template: ${err.message}`);
-    }
+  for (const id of ["download-blank", "menu-download-blank", "help-download-blank"]) $(id).addEventListener("click", downloadBlank);
+  for (const id of ["show-help", "menu-help"]) $(id).addEventListener("click", openHelp);
+  $("help-close").addEventListener("click", () => $("help-dialog").close());
+  $("help-dialog").addEventListener("click", (event) => {
+    if (event.target === event.currentTarget) event.currentTarget.close(); // a click on the backdrop
   });
 
-  if (location.protocol.startsWith("http")) $("try-sample").hidden = false;
   $("try-sample").addEventListener("click", async () => {
     try {
-      const list = await fetch(encodeURI(SAMPLE_LIST));
-      if (!list.ok) throw new Error(`HTTP ${list.status}`);
-      await openWorkbook(await list.arrayBuffer(), "WhatsApp Invite List dummy.xlsx");
-      if (!state.image) {
-        const image = await fetch(encodeURI(SAMPLE_IMAGE));
-        if (image.ok) await setImage(await image.blob(), "WhatsApp Invite.png");
-      }
+      await openWorkbook(await guestListWorkbook(SAMPLE_GUESTS), "Sample guest list.xlsx", { sample: true });
+      // Fills an empty image slot only, and isn't kept, so it can't end up in real invitations.
+      if (!state.image) await setImage(await sampleImage(), "Sample invite image.png", { persist: false });
     } catch (err) {
-      showError(`Couldn't load the sample data: ${err.message}`);
+      showError(`Couldn't load the sample: ${err.message}`);
     }
   });
 
   $("error-close").addEventListener("click", () => ($("error").hidden = true));
 
+  // The browser's Back and Forward buttons move between set-up and sending.
+  window.addEventListener("popstate", (event) => {
+    const before = state.view;
+    state.view = (event.state && event.state.view) || "start";
+    renderView();
+    showView({ push: false, moved: state.view !== before });
+  });
+
+  // Guests
   $("category").addEventListener("change", (event) => {
     state.category = event.target.value;
     renderAll();
@@ -1423,12 +2133,73 @@
     renderAll();
   });
 
+  $("autosave").addEventListener("change", async (event) => {
+    if (!event.target.checked) {
+      state.autoSave = false;
+      renderSaving();
+      return;
+    }
+    try {
+      if ((await state.handle.requestPermission({ mode: "readwrite" })) !== "granted") {
+        throw new Error("permission wasn't given");
+      }
+      state.autoSave = true;
+      await saveWorkbook(); // write what's been marked so far
+    } catch (err) {
+      event.target.checked = false;
+      state.autoSave = false;
+      showError(`Can't save into ${state.fileName}: ${err.message}`);
+    }
+    renderSaving();
+  });
+
+  // Invitation: image, event details, message
+  $("image-upload").addEventListener("click", () => $("image-input").click());
+  $("image-input").addEventListener("change", (event) => {
+    const file = event.target.files[0];
+    event.target.value = "";
+    if (file) setImage(file, file.name);
+  });
+
+  $("attach-image").addEventListener("change", (event) => {
+    state.attach = event.target.checked;
+    renderAll();
+  });
+
+  $("download-image").addEventListener("click", downloadImage);
+
+  $("remove-image").addEventListener("click", () => {
+    state.image = null;
+    store.remove(KEYS.image);
+    renderAll();
+  });
+
+  for (const [id, field] of Object.entries(EVENT_INPUTS)) {
+    $(id).addEventListener("input", (event) => {
+      state.event[field] = event.target.value;
+      saveEvent();
+      renderMessages();
+    });
+  }
+  $("insert-map-link").addEventListener("click", () => insertAtCursor("[Map link]"));
+  $("insert-calendar-link").addEventListener("click", () => insertAtCursor("[Calendar link]"));
+
+  $("tab-write").addEventListener("click", () => showTab("write"));
+  $("tab-preview").addEventListener("click", () => showTab("preview"));
+  $("tabs").addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    const next = $("tab-write").getAttribute("aria-selected") === "true" ? "preview" : "write";
+    showTab(next);
+    $(`tab-${next}`).focus();
+  });
+
   $("insert-field").addEventListener("change", (event) => {
     const token = event.target.value;
     event.target.value = "";
     if (token) insertAtCursor(token);
   });
 
+  $("upload-template").addEventListener("click", () => $("template-input").click());
   $("template-input").addEventListener("change", async (event) => {
     const file = event.target.files[0];
     event.target.value = "";
@@ -1447,78 +2218,115 @@
     setTemplate(DEFAULT_TEMPLATE, { reloadEditor: true });
   });
 
-  $("image-input").addEventListener("change", (event) => {
-    const file = event.target.files[0];
-    event.target.value = "";
-    if (file) setImage(file, file.name);
+  $("bar-issues").addEventListener("click", () => {
+    const issues = messageIssues();
+    if (issues.brackets.length && !issues.unknown.length && !issues.missingName) {
+      openEventDetails();
+    } else {
+      showTab("write");
+      $("template-warnings").scrollIntoView({ block: "center", behavior: scrollBehaviour() });
+    }
   });
 
-  $("attach-image").addEventListener("change", (event) => {
-    state.attach = event.target.checked;
-    renderAll();
+  $("start-sending").addEventListener("click", () => {
+    if (!state.selected.length) return;
+    flushEdit();
+    // Carry on with the first guest not sent yet; when everyone's sent, the summary shows.
+    if (!allSent()) setCurrent(state.selected.find((r) => !state.sent.has(r)));
+    renderCard();
+    go("send");
   });
 
-  $("download-image").addEventListener("click", async () => {
-    downloadBlob(await (await fetch(state.image.dataUrl)).blob(), state.image.name);
-  });
-
-  $("remove-image").addEventListener("click", () => {
-    state.image = null;
-    store.remove(KEYS.image);
-    renderAll();
-  });
-
-  $("picker").addEventListener("change", (event) => {
-    state.current = Number(event.target.value);
-    $("copy-status").textContent = "";
-    renderMessages();
+  // Send mode
+  function showGuest(row) {
+    setCurrent(row);
+    renderCard();
     saveSession();
-  });
+  }
 
-  $("prev").addEventListener("click", () => {
-    state.current = state.selected[state.selected.indexOf(state.current) - 1];
-    $("copy-status").textContent = "";
-    renderMessages();
-    saveSession();
-  });
+  $("picker").addEventListener("change", (event) => showGuest(Number(event.target.value)));
+  $("prev").addEventListener("click", () => showGuest(state.selected[state.selected.indexOf(state.current) - 1]));
+  $("next").addEventListener("click", () => showGuest(state.selected[state.selected.indexOf(state.current) + 1]));
+  $("exit-send").addEventListener("click", () => go("setup"));
+  $("summary-more").addEventListener("click", () => go("setup"));
 
-  $("next").addEventListener("click", () => {
-    state.current = state.selected[state.selected.indexOf(state.current) + 1];
-    $("copy-status").textContent = "";
-    renderMessages();
-    saveSession();
-  });
+  function markCopied(id) {
+    state.copied.add(id);
+    renderSteps();
+  }
 
   $("copy-name").addEventListener("click", async () => {
-    const name = state.byRow.get(state.current).contact;
-    const ok = await copyText(name);
-    copyStatus(ok ? "✓ Contact name copied. Paste it into WhatsApp's search to open the chat." : "Couldn't copy the contact name.", ok);
+    const ok = await copyText(state.byRow.get(state.current).contact);
+    if (ok) markCopied("copy-name");
+    copyStatus(ok ? "Contact name copied. Paste it into WhatsApp's search to open the chat." : "Couldn't copy the contact name.", ok);
   });
 
   $("copy-image").addEventListener("click", async () => {
     try {
       // The item is built straight away, as Safari requires.
       await navigator.clipboard.write([new ClipboardItem({ "image/png": state.image.png })]);
-      copyStatus("✓ Invite image copied. Paste it into the chat (⌘V / Ctrl+V), send it, then copy the message text.", true);
+      markCopied("copy-image");
+      copyStatus("Invite image copied. Paste it into the chat, send it, then copy the message text.", true);
     } catch (err) {
-      copyStatus(`Couldn't copy the image in this browser (${err.name}). Use “Download invite image” and drag it into WhatsApp.`, false);
+      copyStatus(`Couldn't copy the image in this browser (${err.name}). Download it and drag it into WhatsApp instead.`, false,
+        { label: "Download invite image", run: downloadImage });
     }
   });
 
   $("copy-text").addEventListener("click", async () => {
     flushEdit(); // copy what's in the editor right now, even mid-typing
     const ok = await copyText(messageFor(state.byRow.get(state.current)));
-    copyStatus(ok ? "✓ Message text copied. Paste it into the chat (⌘V / Ctrl+V) and send." : "Couldn't copy. Open “Show the plain text” below and copy it by hand.", ok);
+    if (ok) markCopied("copy-text");
+    copyStatus(ok ? "Message text copied. Paste it into the chat and send it." : "Couldn't copy. Open “Show the plain text” below and copy it by hand.", ok);
   });
 
   $("mark-sent").addEventListener("click", () => {
-    $("copy-status").textContent = "";
-    setSent(state.current, true);
+    if (!state.sent.has(state.current)) setSent(state.current, true);
   });
 
-  $("undo-sent").addEventListener("click", () => setSent(state.current, false));
+  $("undo-sent").addEventListener("click", () => {
+    const refocus = document.activeElement === $("undo-sent");
+    setSent(state.current, false); // the button hides itself, so keyboard focus moves to "Mark as sent"
+    if (refocus) $("mark-sent").focus();
+  });
 
-  $("download-all").addEventListener("click", () => {
+  // Keyboard: the step numbers copy, Enter marks as sent, the arrows change guest.
+  document.addEventListener("keydown", (event) => {
+    if (state.view !== "send" || event.defaultPrevented || event.isComposing) return;
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (document.querySelector("dialog[open]") || !menu.hidden) return;
+    const target = event.target instanceof Element ? event.target : document.body;
+    if (target.closest("input, select, textarea, [contenteditable]")) return;
+    const control = target.closest("button, a, summary");
+    if (/^[1-9]$/.test(event.key)) {
+      const id = sendSteps()[Number(event.key) - 1];
+      if (!id || $(id).hidden) return;
+      event.preventDefault();
+      $(id).click();
+    } else if (event.key === "Enter") {
+      // Enter on any other button or link does what that button does.
+      if (control && !SEND_STEPS.includes(control.id)) return;
+      event.preventDefault();
+      if (!$("mark-sent").hidden) $("mark-sent").click();
+      else if (!$("next").disabled) $("next").click();
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      const button = $(event.key === "ArrowLeft" ? "prev" : "next");
+      if (button.disabled) return;
+      event.preventDefault();
+      button.click();
+    }
+  });
+
+  // Downloads (also in the More menu)
+  for (const id of ["menu-download-updated", "send-download", "summary-download"]) {
+    $(id).addEventListener("click", downloadUpdated);
+  }
+
+  $("menu-download-original").addEventListener("click", () => {
+    downloadBlob(state.original, `${baseName()} - original.xlsx`, XLSX_TYPE);
+  });
+
+  $("menu-download-all").addEventListener("click", () => {
     flushEdit();
     const text = state.selected
       .map((row) => {
@@ -1529,42 +2337,106 @@
     downloadBlob(text, "invitation_messages.txt", "text/plain;charset=utf-8");
   });
 
-  $("download-updated").addEventListener("click", () => {
-    downloadBlob(state.bytes, `${baseName()} - updated.xlsx`, XLSX_TYPE);
-    if (!state.autoSave) {
-      state.changed = false;
-      renderSaveBar();
-      saveSession();
-    }
-  });
-
-  $("download-original").addEventListener("click", () => {
-    downloadBlob(state.original, `${baseName()} - original.xlsx`, XLSX_TYPE);
-  });
-
-  $("autosave").addEventListener("change", async (event) => {
-    if (!event.target.checked) {
-      state.autoSave = false;
-      renderSaveBar();
-      return;
-    }
-    try {
-      if ((await state.handle.requestPermission({ mode: "readwrite" })) !== "granted") {
-        throw new Error("permission wasn't given");
-      }
-      state.autoSave = true;
-      await saveWorkbook(); // write what's been marked so far
-    } catch (err) {
-      event.target.checked = false;
-      state.autoSave = false;
-      showError(`Can't save into ${state.fileName}: ${err.message}`);
-    }
-    renderSaveBar();
-  });
-
   confirmClick($("clear-data"), "Click again to clear everything", () => {
     Object.values(KEYS).forEach((key) => store.remove(key));
     location.reload();
+  });
+
+  // More menu
+  const menuItems = () => [...menu.querySelectorAll("[role='menuitem']")].filter((item) => !item.hidden);
+
+  function openMenu() {
+    renderMenu();
+    menu.hidden = false;
+    menuButton.setAttribute("aria-expanded", "true");
+    menuItems()[0].focus();
+  }
+
+  function closeMenu(returnFocus) {
+    if (menu.hidden) return;
+    menu.hidden = true;
+    menuButton.setAttribute("aria-expanded", "false");
+    if (returnFocus) menuButton.focus();
+  }
+
+  menuButton.addEventListener("click", () => (menu.hidden ? openMenu() : closeMenu()));
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".menu-wrap")) closeMenu();
+  });
+  menu.addEventListener("click", (event) => {
+    const item = event.target.closest("[role='menuitem']");
+    if (item && item.id !== "clear-data") closeMenu(); // "Clear data" asks for a second click
+  });
+  menu.addEventListener("keydown", (event) => {
+    const items = menuItems();
+    const i = items.indexOf(document.activeElement);
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeMenu(true);
+    } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      items[(i + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length].focus();
+    } else if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      items[event.key === "Home" ? 0 : items.length - 1].focus();
+    } else if (event.key === "Tab") {
+      closeMenu();
+    }
+  });
+
+  // Drag and drop: a guest list on the start screen or the set-up page, an image on the set-up page.
+  const hasFiles = (event) => Array.from((event.dataTransfer && event.dataTransfer.types) || []).includes("Files");
+
+  function dropTarget(event) {
+    if (state.view === "start") return "list";
+    if (state.view !== "setup") return null;
+    const item = Array.from(event.dataTransfer.items || []).find((i) => i.kind === "file");
+    return item && item.type.startsWith("image/") ? "image" : "list";
+  }
+
+  let dragDepth = 0;
+  function showDragging(target) {
+    $("dropzone").classList.toggle("dragging", target === "list" && state.view === "start");
+    $("guests-card").classList.toggle("dragging", target === "list" && state.view === "setup");
+    $("image-row").classList.toggle("dragging", target === "image");
+  }
+
+  window.addEventListener("dragenter", (event) => {
+    if (!hasFiles(event)) return;
+    dragDepth++;
+    showDragging(dropTarget(event));
+  });
+  window.addEventListener("dragleave", (event) => {
+    if (!hasFiles(event)) return;
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) showDragging(null);
+  });
+  window.addEventListener("dragover", (event) => {
+    if (!hasFiles(event)) return;
+    event.preventDefault(); // otherwise the browser opens the file
+    event.dataTransfer.dropEffect = dropTarget(event) ? "copy" : "none";
+  });
+  window.addEventListener("drop", (event) => {
+    if (!hasFiles(event)) return;
+    event.preventDefault();
+    dragDepth = 0;
+    showDragging(null);
+    if (!dropTarget(event)) return;
+    const item = Array.from(event.dataTransfer.items || []).find((i) => i.kind === "file");
+    const file = item ? item.getAsFile() : event.dataTransfer.files[0];
+    if (!file) return;
+    if (state.view === "setup" && file.type.startsWith("image/")) {
+      if (/^image\/(png|jpeg|webp)$/.test(file.type)) setImage(file, file.name);
+      else showError(`${file.name} isn't a PNG, JPEG or WebP image.`);
+      return;
+    }
+    if (!/\.xlsx$/i.test(file.name)) {
+      showError(`${file.name} isn't an Excel .xlsx file. In Excel, use Save As and choose Excel Workbook (.xlsx), then try again.`);
+      return;
+    }
+    // Chrome and Edge give a handle to the dropped file too, so changes can be saved into it.
+    const handle = item && item.getAsFileSystemHandle ? item.getAsFileSystemHandle().catch(() => null) : Promise.resolve(null);
+    handle.then((h) => loadFile(file, h && h.kind === "file" ? h : null));
   });
 
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
@@ -1579,19 +2451,11 @@
     renderMessages(); // the WhatsApp bubbles have their own light/dark colours
   });
 
-  for (const [id, field] of Object.entries(EVENT_INPUTS)) {
-    $(id).addEventListener("input", (event) => {
-      state.event[field] = event.target.value;
-      saveEvent();
-      renderMessages();
-    });
-  }
-  $("insert-map-link").addEventListener("click", () => insertAtCursor("[Map link]"));
-  $("insert-calendar-link").addEventListener("click", () => insertAtCursor("[Calendar link]"));
-
   // ------------------------------------------------------------------ start-up
 
   renderThemeToggle();
+  history.scrollRestoration = "manual"; // each view opens at the top (showView), also with Back/Forward
+  history.replaceState({ view: "start" }, "");
   try {
     Object.assign(state.event, JSON.parse(store.get(KEYS.event) || "{}"));
   } catch (e) {
@@ -1603,6 +2467,10 @@
   state.template = store.get(KEYS.template) ?? DEFAULT_TEMPLATE;
   loadEditor(state.template);
   fillInsertField();
+  // Event details start open on a computer while there's something left to fill in.
+  $("event-box").open = window.matchMedia("(min-width: 901px)").matches &&
+    W.templateBlanks(W.fillBlanks(state.template, eventValues())).length > 0;
+  copyStatus("");
   renderAll();
   offerResume();
   if (!window.ExcelJS) showError("The Excel library couldn't load. Check the internet connection and reload the page.");

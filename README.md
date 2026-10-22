@@ -8,21 +8,32 @@ Everything runs in your browser: your guest list, message and progress never lea
 
 ## How it works
 
-1. **Guest list:** click **Upload guest list (.xlsx)**, or start from **Download blank guest list template (.xlsx)**. Unsure about the layout? Open **What should my Excel guest list look like?** **Try with a sample guest list** loads a demo.
-2. **Pick guests:** filter by **Category**, search, then **Select all shown** or tick guests one by one. Headcount totals (Estimated Count, Adults, Kids…) are added up for the selected and the sent guests.
-3. **Invite image & message:**
-   - **Invite image:** upload it once. It's sent as its own post, before the text.
+**Start:** drop your Excel guest list on the page, or click **Upload guest list (.xlsx)**. No list yet? Use **Download blank guest list template (.xlsx)**, or **Try with a sample guest list** to try the app with numbered sample guests (Guest-1, Guest-2…). **What should my Excel guest list look like?** explains the columns.
+
+**Set up, on one page:**
+
+1. **Choose guests:** filter by **Category**, search, then **Select all shown** or tick guests one by one. The bar at the bottom adds up the headcount (Estimated Count, Adults, Kids…).
+2. **Write the invitation:**
+   - **Invite image:** upload it once (or drop it on the page). It's sent as its own post, before the text.
    - **Event details:** enter the event name, date, start and end time, address and host once. They fill the message's `[blanks]`, such as `[Date]` and `[Address]`, for every guest. **Insert map link** and **Insert "Add to calendar" link** add a Google Maps link and a Google Calendar link.
-   - **Message:** write it in the Word-like editor (bold, italic, strikethrough, monospace, lists, quotes). **+ Insert a guest detail** adds `{name}` or any column, e.g. `{Adults}`. A warning above the editor lists anything still to fill in.
-4. **Copy & send, one guest at a time,** following the numbered steps on the card:
-   1. **Copy contact name**, then paste it into WhatsApp's search to open the chat;
-   2. **Copy invite image**, paste it and send;
-   3. **Copy message text**, paste it and send;
-   4. **Mark as sent & go to next guest** (with **Undo: mark as not sent**).
+   - **Message:** write it in the Word-like editor (bold, italic, strikethrough, monospace, lists, quotes). **+ Insert a guest detail** adds `{name}` or any column, e.g. `{Adults}`. **WhatsApp preview** shows exactly what a guest will get. Anything still to fill in is listed above the message, with a button to fix it.
 
-Marking a guest as sent fills in `Invited?` = Yes and `Invited On` (date and time) in the workbook. Use **Download updated guest list (.xlsx)** at any time; in Chrome or Edge you can tick *Also save changes straight into …* to write straight back into your Excel file. **Download original guest list (backup)** gives you the file as you uploaded it.
+Then click **Start sending** in the bar at the bottom.
 
-Progress, message, event details and image are kept in the browser: after a refresh, click **Resume where I left off**. **Clear data saved in this browser** (top right) removes it all, e.g. on a shared computer. The sun/moon button at the top switches between light and dark; until you choose, it follows your device.
+**Sending** shows one guest at a time. On a computer the buttons are on the left and the WhatsApp preview on the right, so you can read the message while you copy; in a narrow window or on a phone, the buttons sit at the bottom of the screen:
+
+1. **Copy contact name**, then paste it into WhatsApp's search to open the chat;
+2. **Copy invite image**, paste it and send;
+3. **Copy message text**, paste it and send;
+4. **Mark as sent & go to next guest** (with **Undo: mark as not sent**).
+
+On a computer the keyboard does it too: **1**, **2**, **3** copy, **Enter** marks as sent and moves on, **←** / **→** change guest.
+
+When everyone selected is marked as sent, a summary appears at the top with the headcount and **Download updated guest list (.xlsx)**. **Invite more guests** takes you back to choose the next group.
+
+Marking a guest as sent fills in `Invited?` = Yes and `Invited On` (date and time) in the workbook. In Chrome or Edge you can tick *Also save changes straight into …* under the guest list to write straight back into your Excel file; other browsers download an updated copy. The **More** menu (top right) has the rarer actions: download the updated or original guest list, download all the messages as text, the blank template, and **Clear data saved in this browser** (e.g. on a shared computer).
+
+Progress, message, event details and image are kept in the browser: after a refresh, click **Resume where I left off** to carry on from the same screen. (The sample guest list isn't kept, so trying it never replaces your own unfinished list.) The browser's Back button moves between setting up and sending. The sun/moon button at the top switches between light and dark; until you choose, it follows your device.
 
 ## Guest list format
 
@@ -30,7 +41,7 @@ Headers go on **row 2** of the **first sheet** (row 1 is free for notes or total
 
 | Column | Required | Used for |
 |---|---|---|
-| `Addressable Names` | ✅ | The greeting, e.g. "Ravi & Priya": `{name}` in the message |
+| `Addressable Names` | ✅ | The greeting, e.g. "Guest-1 & family": `{name}` in the message |
 | `Add to Invite List?` | ✅ | `Yes` to include (`Y`, `TRUE`, `✓` also work) |
 | `Name` | | The contact's name as saved in WhatsApp, copied by *Copy contact name* |
 | `Category` | | The category filter (Family, Friends, Work…) |
@@ -60,13 +71,13 @@ No. The clipboard holds one item at a time, so they're copied (and pasted) one a
 ## Limitations
 
 - No automatic sending and no WhatsApp API: you press Send.
-- Saving the workbook rewrites it with ExcelJS: formulas, styles and dropdowns are kept, but charts, pictures and pivot tables inside the workbook are dropped (use *Download original guest list* if you need them).
+- Saving the workbook rewrites it with ExcelJS: formulas, styles and dropdowns are kept, but charts, pictures and pivot tables inside the workbook are dropped (use *Download original guest list* in the More menu if you need them).
 - Saving straight into the Excel file needs Chrome or Edge on a computer; other browsers download an updated copy instead.
 - The "Add to calendar" link opens Google Calendar.
 
 ## Running it on your own computer
 
-Download the repository (*Code → Download ZIP*), unzip it and double-click `index.html` (Chrome or Edge recommended). The editor and Excel libraries load from the jsDelivr CDN, so the first visit needs an internet connection. *Try with a sample guest list* only appears when the page is served over the web.
+Download the repository (*Code → Download ZIP*), unzip it and double-click `index.html` (Chrome or Edge recommended). The editor and Excel libraries load from the jsDelivr CDN, so it needs an internet connection.
 
 ## For developers
 

@@ -26,6 +26,12 @@ IS_DESKTOP = sys.platform == "darwin"
 
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
+# Word-like editor for the message template: a custom component (static HTML/JS
+# in ./wa_editor, no build step) that shows rich text but returns WhatsApp text.
+wa_editor = components.declare_component(
+    "wa_editor", path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "wa_editor")
+)
+
 # Used when the configured template file is missing.
 FALLBACK_TEMPLATE = (
     "Dear {name},\n\n"
@@ -85,6 +91,10 @@ if 'template_text' not in st.session_state:
             st.session_state.template_text = f.read()
     else:
         st.session_state.template_text = FALLBACK_TEMPLATE
+# template_version: bumped when the template is replaced from outside the editor
+# (a template file was loaded), which tells the editor to reload its text.
+if 'template_version' not in st.session_state:
+    st.session_state.template_version = 0
 
 # Match the app theme in the custom HTML (preview bubble, copy buttons).
 IS_DARK = st.context.theme.type == "dark"
@@ -214,6 +224,7 @@ def load_template():
     except UnicodeDecodeError:
         text = raw.decode("cp1252", errors="replace")
     st.session_state.template_text = text.replace("\r\n", "\n").replace("\r", "\n")
+    st.session_state.template_version += 1
 
 def save_workbook_locally():
     # On local macOS with the on-disk guest list (nothing uploaded), also save
@@ -290,28 +301,25 @@ with col1:
 with col2:
     st.subheader("✍️ 2. Message & Image")
 
-    with st.expander("📂 Load / save template"):
-        st.file_uploader(
-            "Load a template (.txt / .md)", type=["txt", "md"],
-            key="template_upload", on_change=load_template,
-        )
-        st.download_button(
-            "💾 Download template (.txt)", data=st.session_state.template_text,
-            file_name="invitation_template.txt", mime="text/plain",
-            on_click="ignore", width="stretch",
-        )
-        # Saving to disk is local-only: the cloud filesystem is ephemeral and shared.
-        if IS_DESKTOP and st.button("Save as default template", width="stretch", help=f"Overwrites {PROMPT_FILE}"):
-            with open(PROMPT_FILE, "w", encoding="utf-8") as f:
-                f.write(st.session_state.template_text)
-            st.toast("Saved as the default template.", icon="💾")
-
-    st.text_area(
-        "Message template — `{name}` is replaced by each guest's Addressable Name",
-        key="template_text",
-        height=380
+    st.markdown("**Message template** — select text and use the toolbar; **+ {name}** inserts each guest's Addressable Name.")
+    # The editor's value is {"text", "version"}. Take it from session state before
+    # rendering the editor, so the editor is always handed the newest text (it is
+    # reloaded from that if its frame is ever re-created). A value based on an
+    # older version (from before a template file was loaded) is ignored.
+    edited = st.session_state.get("template_editor")
+    if (edited and edited.get("version") == st.session_state.template_version
+            and edited.get("text") != st.session_state.template_text):
+        st.session_state.template_text = edited["text"]
+    wa_editor(
+        value=st.session_state.template_text,
+        version=st.session_state.template_version,
+        key="template_editor",
+        default=None,
     )
-    st.caption("WhatsApp formatting: `*bold*` · `_italic_` · `~strikethrough~` · `` ```monospace``` `` · `> quote`")
+    st.caption(
+        "Pasting from Word, Google Docs or an email keeps bold, italic and strikethrough. "
+        "WhatsApp has no underline, colours or font sizes, so those are dropped."
+    )
     template = st.session_state.template_text
     if "{name}" not in template:
         st.warning("The template has no `{name}` placeholder, so every guest gets the same text.")
@@ -320,6 +328,22 @@ with col2:
     preview_name = guest_names[selected_rows[0]] if selected_rows else "Guest Name"
     st.caption(f"Preview for {preview_name}:")
     st.html(whatsapp_to_html(render_message(template, preview_name), dark=IS_DARK))
+
+    with st.expander("📂 Load / save template"):
+        st.file_uploader(
+            "Load a template (.txt / .md)", type=["txt", "md"],
+            key="template_upload", on_change=load_template,
+        )
+        st.download_button(
+            "💾 Download template (.txt)", data=template,
+            file_name="invitation_template.txt", mime="text/plain",
+            on_click="ignore", width="stretch",
+        )
+        # Saving to disk is local-only: the cloud filesystem is ephemeral and shared.
+        if IS_DESKTOP and st.button("Save as default template", width="stretch", help=f"Overwrites {PROMPT_FILE}"):
+            with open(PROMPT_FILE, "w", encoding="utf-8") as f:
+                f.write(template)
+            st.toast("Saved as the default template.", icon="💾")
 
     st.markdown("---")
     st.subheader("🖼️ Invite Image")

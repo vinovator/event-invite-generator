@@ -23,6 +23,7 @@ python Invite_draft.py
 
 - **`app.py`** — Streamlit web UI. Three-column flow: select guests → edit template & image → copy & send one guest at a time. Stateful via `st.session_state`. Designed to run both on local macOS and Streamlit Community Cloud — see "Platform dependency" below.
 - **`invite_helpers.py`** — pure helpers (no Streamlit) used by `app.py`: `render_message`, `whatsapp_to_html` (preview), `build_guest_list_template`, `mark_row` (Excel write-back), `prepare_image`/`image_mime`, `copy_buttons_html`. Checkable from a plain Python shell.
+- **`wa_editor/`** — the Word-like template editor, a Streamlit custom component with no build step: `index.html` (loads Quill 2.0.3 from jsDelivr; falls back to a plain `<textarea>` if that fails), `editor.js` (implements the component postMessage protocol by hand), `convert.js` (WhatsApp text ↔ Quill Delta; loadable in Node for checks). Declared in `app.py` with `components.declare_component("wa_editor", path=...)`.
 - **`Invite_draft.py`** — Stateless batch script. Reads the same inputs and dumps every drafted message to `output/Invite_Drafts.md`. No write-back.
 
 `app.py` and `Invite_draft.py` independently reimplement `load_config()` and the same Excel-reading conventions — changes to data handling usually need to be mirrored in both files.
@@ -34,7 +35,7 @@ python Invite_draft.py
 - **Required columns** (case-insensitive after `.strip()`): `Addressable Names`, `Add to Invite List?`. Optional: `Invited` / `Invited?` (`mark_row` adds `Invited?` if missing). All other columns, including any phone number, are ignored.
 - **Filtering logic** (app.py): include rows where `Add to Invite List?` == "yes" AND `Invited` != "yes" AND the name is non-empty. The CLI only applies the first condition.
 - **Template placeholder**: `{name}` is substituted with `str.replace` (in both scripts), so any other `{`/`}` in the template is harmless. Do not switch back to `str.format`.
-- **Templates are written in WhatsApp-native formatting** (`*bold*`, `_italic_`, `~strike~`, ```` ```mono``` ````, `` `code` ``, `> quote`) — what's typed is what's pasted. Legacy Markdown `**bold**` is converted to `*bold*` when rendering (both scripts). The preview (`whatsapp_to_html` + `st.html`) mimics WhatsApp's rules; never render messages with `st.markdown` (Markdown treats `*x*` as italic and `$…$` as LaTeX).
+- **Templates are stored in WhatsApp-native formatting** (`*bold*`, `_italic_`, `~strike~`, ```` ```mono``` ````, `` `code` ``, `> quote`, `- ` lists) — that's what is copied, saved and passed to the CLI; the editor only displays it as rich text. `convert.js` must follow the same marker rules as `invite_helpers._style_pattern` (markers hug the text, one line, not glued to letters/digits); formatting WhatsApp can't show (mid-word, inside monospace) is dropped when converting. Legacy Markdown `**bold**` is converted to `*bold*` when rendering (both scripts). The preview (`whatsapp_to_html` + `st.html`) mimics WhatsApp's rules; never render messages with `st.markdown` (Markdown treats `*x*` as italic and `$…$` as LaTeX).
 
 ## Data input (app.py)
 
@@ -43,7 +44,7 @@ The guest list comes from either an `st.file_uploader` (key `guest_upload`; pref
 - **`workbook_bytes`** — a working copy mutated in memory by "Mark sent"/"Undo" and offered back via download. Reset (with `sent_rows`, `selected_rows`, `current_row`) whenever a new source is detected.
 - **`last_saved_bytes`** — what "Mark sent" last wrote to the on-disk list (local only), so the app doesn't mistake its own write for a new source.
 
-The template text lives in `st.session_state.template_text` (the text area's key); the template uploader's `on_change` callback replaces it. The invite image comes from the image uploader, else `invite_image_file`.
+The template text lives in `st.session_state.template_text`. The editor (`key="template_editor"`) gets `value` + `version` and returns `{"text", "version"}` (synced ~0.5 s after typing stops, and on blur). The template uploader's `on_change` callback replaces the text and bumps `template_version`, which makes the editor reload; editor values carrying an older version are ignored. `app.py` reads the editor's value from session state **before** rendering it, so the editor is always handed the newest text — Streamlit occasionally re-creates the component frame (seen on the first edit of a session), and `editor.js` also keeps the unsent draft and cursor on `window.parent.waEditorMemory` to carry on seamlessly. The invite image comes from the image uploader, else `invite_image_file`.
 
 ## Streamlit gotcha: the guest navigator
 

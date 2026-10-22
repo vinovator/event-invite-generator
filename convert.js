@@ -269,6 +269,119 @@
       .map((key) => `{${key}}`);
   }
 
+  // --- Event details: [blanks] that are the same for every guest ----------------
+
+  // [Blank] names each event field fills, compared in lower case without punctuation.
+  const EVENT_FIELDS = {
+    name: ["event name", "event", "occasion", "event title"],
+    date: ["date", "event date"],
+    time: ["time", "start time", "event time", "timing"],
+    address: ["address", "venue", "location", "place", "venue address"],
+    host: ["host name", "host", "hosts", "your name", "from"],
+    map: ["map link", "map", "google maps", "location link", "directions"],
+    calendar: ["calendar link", "add to calendar", "calendar"],
+  };
+  const BLANK = /\[([^[\]\n]{1,40})\]/g;
+  const blankKey = (text) => String(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  const pad = (n) => String(n).padStart(2, "0");
+
+  function eventFieldFor(blank) {
+    const key = blankKey(blank);
+    for (const [field, names] of Object.entries(EVENT_FIELDS)) if (names.includes(key)) return field;
+    return null;
+  }
+
+  function parseDate(iso) {
+    const [y, m, d] = String(iso || "").split("-").map(Number);
+    return y && m && d ? { y, m, d } : null;
+  }
+
+  function parseClock(hhmm) {
+    const [h, m] = String(hhmm || "").split(":").map(Number);
+    return Number.isInteger(h) && Number.isInteger(m) ? { h, m } : null;
+  }
+
+  const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September",
+    "October", "November", "December"];
+
+  // "2026-11-14" -> "Saturday 14 November 2026" (built by hand: locale data varies between browsers)
+  function formatEventDate(iso) {
+    const p = parseDate(iso);
+    if (!p) return "";
+    const weekday = WEEKDAYS[new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay()];
+    return `${weekday} ${p.d} ${MONTHS[p.m - 1]} ${p.y}`;
+  }
+
+  // "18:30" -> "6:30 pm"
+  function formatClock(hhmm) {
+    const t = parseClock(hhmm);
+    return t ? `${t.h % 12 || 12}:${pad(t.m)} ${t.h < 12 ? "am" : "pm"}` : "";
+  }
+
+  function mapLink(event) {
+    return event.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}` : "";
+  }
+
+  // Google Calendar "add event" link. Times are wall-clock times in event.timeZone;
+  // no start time makes an all-day event, no end time a 3-hour one.
+  function calendarLink(event) {
+    const day = parseDate(event.date);
+    if (!day) return "";
+    const stamp = (date, withTime) =>
+      `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}` +
+      (withTime ? `T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}00` : "");
+    const start = parseClock(event.start);
+    let dates;
+    if (start) {
+      const from = new Date(Date.UTC(day.y, day.m - 1, day.d, start.h, start.m));
+      const end = parseClock(event.end);
+      let to = end ? new Date(Date.UTC(day.y, day.m - 1, day.d, end.h, end.m)) : new Date(from.getTime() + 3 * 3600e3);
+      if (to <= from) to = new Date(to.getTime() + 24 * 3600e3); // ends after midnight
+      dates = `${stamp(from, true)}/${stamp(to, true)}`;
+    } else {
+      const from = new Date(Date.UTC(day.y, day.m - 1, day.d));
+      dates = `${stamp(from)}/${stamp(new Date(from.getTime() + 24 * 3600e3))}`;
+    }
+    const params = new URLSearchParams({ action: "TEMPLATE", text: event.name || "Event", dates });
+    if (event.address) params.set("location", event.address);
+    if (event.timeZone) params.set("ctz", event.timeZone);
+    return `https://calendar.google.com/calendar/render?${params}`;
+  }
+
+  // Fills [blanks] from the event details; a blank without a value stays as typed.
+  // event: { name, date: "YYYY-MM-DD", start: "HH:MM", end, address, host,
+  //          other: { "<blank key>": "text" }, timeZone }
+  function fillBlanks(template, event) {
+    const text = String(template || "");
+    if (!event) return text;
+    const startTime = formatClock(event.start);
+    const values = {
+      name: event.name || "",
+      date: formatEventDate(event.date),
+      time: startTime && event.end ? `${startTime} to ${formatClock(event.end)}` : startTime,
+      address: event.address || "",
+      host: event.host || "",
+      map: mapLink(event),
+      calendar: calendarLink(event),
+    };
+    return text.replace(BLANK, (match, blank) => {
+      const field = eventFieldFor(blank);
+      const value = field ? values[field] : (event.other || {})[blankKey(blank)];
+      return value ? value : match;
+    });
+  }
+
+  // The [blanks] in a template, each once, with the event field it maps to (or null).
+  function templateBlanks(template) {
+    const seen = new Map();
+    for (const m of String(template || "").matchAll(BLANK)) {
+      const key = blankKey(m[1]);
+      if (key && !seen.has(key)) seen.set(key, { text: m[0], key, field: eventFieldFor(m[1]) });
+    }
+    return [...seen.values()];
+  }
+
   const api = {
     markupToHtml,
     deltaToMarkup,
@@ -277,6 +390,12 @@
     renderMessage,
     templateIssues,
     emptyFields,
+    fillBlanks,
+    templateBlanks,
+    formatEventDate,
+    formatClock,
+    mapLink,
+    calendarLink,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.WaConvert = api;

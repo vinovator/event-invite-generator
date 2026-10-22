@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Event Invitation Generator</title>
+<meta name="description" content="Send personalised WhatsApp invitations from an Excel guest list, one guest at a time. Runs in your browser; nothing is uploaded.">
+<link rel="canonical" href="https://vinovator.github.io/event-invite-generator/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23128c7e'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate(3.6 3.6) scale(.7)'%3E%3Crect width='20' height='16' x='2' y='4' rx='2'/%3E%3Cpath d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/%3E%3C/g%3E%3C/svg%3E">
 <script>
   // Apply a saved Light/Dark choice before the page is drawn (no flash of the wrong theme).
   try {
@@ -130,10 +133,37 @@
   .topbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; }
   .back-link { color: var(--accent); font-weight: 600; text-decoration: none; }
   .back-link:hover { text-decoration: underline; }
-  .theme-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-  .theme-switch button { border: 0; border-radius: 0; padding: 5px 10px; font-size: 13px; }
-  .theme-switch button + button { border-left: 1px solid var(--border); }
-  .theme-switch button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
+  .icon-button { padding: 7px; }
+  /* Icons: one outline set (inline SVG sprite at the top of <body>). */
+  .icon { width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; fill: none; stroke: currentColor;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  button, .file-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  h1, h2 { display: flex; align-items: center; gap: 10px; }
+  h2 .icon { color: var(--accent); }
+  .logo { display: inline-grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 10px;
+    background: var(--accent); color: var(--accent-text); }
+  .logo .icon { width: 24px; height: 24px; }
+  .subtitle { color: var(--muted); margin: 0 0 12px; }
+  .help-table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin-top: 6px; }
+  .help-table th, .help-table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .help-table td:nth-child(2) { color: var(--muted); white-space: nowrap; width: 1%; }
+  .help-table td:first-child { width: 28%; }
+  .event-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-top: 8px; }
+  .event-grid label { display: flex; flex-direction: column; gap: 3px; font-size: 13px; color: var(--muted); }
+  .event-grid .wide { grid-column: 1 / -1; }
+  .event-grid input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 10px; }
+  @media (max-width: 520px) { .event-grid { grid-template-columns: 1fr; } }
+  /* The send steps read top to bottom, like a checklist. */
+  .steps { display: grid; gap: 6px; }
+  .steps button { justify-content: flex-start; }
+  .step-no { display: inline-grid; place-items: center; width: 20px; height: 20px; flex: none; border-radius: 50%;
+    font-size: 12px; font-weight: 700; background: var(--accent); color: var(--accent-text); }
+  .primary .step-no { background: var(--accent-text); color: var(--accent); }
+  .sent-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; color: var(--ok); }
+  .post-row { display: flex; align-items: center; gap: 10px; }
+  .warn { display: flex; gap: 8px; align-items: flex-start; }
+  .warn .icon { margin-top: 2px; }
   .image-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 12px;
     padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); }
   .image-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -142,7 +172,6 @@
   .mini-thumb { width: 64px; height: 64px; flex: none; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
   .choice-buttons button { flex: 1 1 auto; white-space: nowrap; }
   .push-right { margin-left: auto; }
-  .thumb { max-width: 260px; max-height: 260px; border-radius: 8px; border: 1px solid var(--border); display: block; }
 
   /* Send column */
   .progress { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; }
@@ -151,7 +180,6 @@
   .nav { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; }
   .card { border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
   .card-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; font-size: 18px; }
-  .copy-row button { flex: 1 1 120px; }
   .status { min-height: 20px; font-size: 13.5px; }
   .status.ok { color: var(--ok); }
   .status.err { color: var(--err); }
@@ -163,36 +191,73 @@
 </style>
 </head>
 <body>
+<!-- Icons from Lucide (https://lucide.dev), ISC licence. -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-map-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></symbol>
+  <symbol id="i-sheet" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M8 13h2"/><path d="M14 13h2"/><path d="M8 17h2"/><path d="M14 17h2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-message" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M13 8H7"/><path d="M17 12H7"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-list-checks" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+</svg>
 <div class="page">
   <div class="topbar">
-    <a class="back-link" href="https://vinothhaldorai.com/apps/" title="vinothhaldorai.com/apps">← Back to all apps</a>
-    <div class="row">
-      <span class="caption">Theme:</span>
-      <div class="theme-switch" role="group" aria-label="Colour theme">
-        <button type="button" data-theme-choice="light" title="Always use the light theme">☀️ Light</button>
-        <button type="button" data-theme-choice="dark" title="Always use the dark theme">🌙 Dark</button>
-        <button type="button" data-theme-choice="system" title="Follow your device's light/dark setting">🖥️ System</button>
-      </div>
-    </div>
+    <a class="back-link" href="https://vinothhaldorai.com/apps/" title="vinothhaldorai.com/apps"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg> Back to all apps</a>
+    <button id="theme-toggle" class="icon-button" type="button"><svg class="icon" aria-hidden="true"><use id="theme-icon" href="#i-sun"/></svg></button>
   </div>
-  <h1>🎉 Event Invitation Generator</h1>
-  <p class="muted">
-    Excel guest list: headers on <b>row 2</b>. Required columns: <code>Addressable Names</code> (the greeting, <code>{name}</code>)
-    and <code>Add to Invite List?</code> (<code>Yes</code> to include). Optional: <code>Name</code> (WhatsApp contact name),
-    <code>Category</code>, <code>Invited?</code> / <code>Invited On</code> (filled in when you mark a guest as sent), and any other
-    column for <code>{Column}</code> placeholders. Everything stays in this browser; nothing is uploaded to a server.
-  </p>
+  <h1><span class="logo"><svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg></span>Event Invitation Generator</h1>
+  <p class="subtitle">Personalised WhatsApp invitations from your Excel guest list, one guest at a time.</p>
   <div class="row">
-    <button id="open-list" class="primary">⬆️ Upload guest list (.xlsx)</button>
+    <button id="open-list" class="primary"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg> Upload guest list (.xlsx)</button>
     <input type="file" id="list-input" accept=".xlsx" hidden>
-    <button id="download-blank">⬇️ Download blank guest list template (.xlsx)</button>
-    <button id="try-sample" hidden>🧪 Try with a sample guest list</button>
-    <span id="file-name" class="muted"></span>
-    <button id="clear-data" class="link push-right" title="Removes the guest list, message, image and progress kept in this browser">🧹 Clear data saved in this browser</button>
+    <button id="download-blank"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download blank guest list template (.xlsx)</button>
+    <button id="try-sample" hidden><svg class="icon" aria-hidden="true"><use href="#i-flask"/></svg> Try with a sample guest list</button>
+    <span id="file-name" class="muted row"></span>
+    <button id="clear-data" class="link push-right" title="Removes the guest list, message, image, event details and progress kept in this browser"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg> Clear data saved in this browser</button>
   </div>
+  <details id="format-help" class="box" open>
+    <summary><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg> What should my Excel guest list look like?</summary>
+    <p class="caption">Put the column headers on <b>row 2</b> of the first sheet; guests start on row 3. The easiest start is
+      <b>Download blank guest list template</b>.</p>
+    <table class="help-table">
+      <tr><th>Column</th><th></th><th>What it's for</th></tr>
+      <tr><td><code>Addressable Names</code></td><td>Required</td><td>The greeting, e.g. “Ravi &amp; Priya”. It's <code>{name}</code> in the message.</td></tr>
+      <tr><td><code>Add to Invite List?</code></td><td>Required</td><td><code>Yes</code> to include the guest (Y, TRUE and ✓ also work).</td></tr>
+      <tr><td><code>Name</code></td><td>Optional</td><td>Their name as saved in WhatsApp, copied for searching.</td></tr>
+      <tr><td><code>Category</code></td><td>Optional</td><td>Family, Friends, Work… to send in groups.</td></tr>
+      <tr><td><code>Invited?</code>, <code>Invited On</code></td><td>Optional</td><td>Filled in for you when you mark a guest as sent.</td></tr>
+      <tr><td>Any other column</td><td>Optional</td><td>Use it in the message as <code>{Column name}</code>, e.g. <code>{Adults}</code>.</td></tr>
+    </table>
+  </details>
+  <p class="caption row"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg> Everything stays in this browser; nothing is uploaded to a server.</p>
   <div id="resume" class="info row" hidden style="margin-top:10px">
     <span id="resume-text"></span>
-    <button id="resume-yes" class="primary">▶ Resume where I left off</button>
+    <button id="resume-yes" class="primary"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg> Resume where I left off</button>
     <button id="resume-no">Start fresh</button>
   </div>
   <div id="error" class="error" hidden style="margin-top:10px"><span id="error-text"></span><button class="link" id="error-close">Dismiss</button></div>
@@ -200,38 +265,57 @@
   <div class="columns">
     <!-- 1. Guests -->
     <section class="stack">
-      <h2>👥 1. Select guests</h2>
+      <h2><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg> 1. Select guests</h2>
       <p id="guests-empty" class="info">Upload your guest list to start, or download the blank guest list template, fill it in and upload it.</p>
       <div id="guests-ui" class="stack" hidden>
         <p id="breakdown" class="info"></p>
         <p id="column-notes" class="muted" hidden></p>
         <select id="category" aria-label="Show guests from this category"></select>
         <input type="search" id="search" placeholder="Search guests by name" aria-label="Search guests by name">
-        <div class="row choice-buttons"><button id="select-visible">☑️ Select all shown</button><button id="clear-selection">✕ Clear selection</button></div>
+        <div class="row choice-buttons"><button id="select-visible"><svg class="icon" aria-hidden="true"><use href="#i-list-checks"/></svg> Select all shown</button><button id="clear-selection"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg> Clear selection</button></div>
         <div id="guest-list" class="checklist"></div>
         <p id="selected-summary"></p>
       </div>
     </section>
 
-    <!-- 2. Message & image -->
+    <!-- 2. Invite image, event details & message -->
     <section>
-      <h2>✍️ 2. Invite image &amp; message</h2>
+      <h2><svg class="icon" aria-hidden="true"><use href="#i-pen"/></svg> 2. Invite image &amp; message</h2>
       <div class="image-bar">
         <img id="image-thumb" class="mini-thumb" alt="Invite image" hidden>
         <div class="image-info">
           <div class="row">
-            <strong>🖼️ Invite image</strong>
+            <strong class="row"><svg class="icon" aria-hidden="true"><use href="#i-image"/></svg> Invite image</strong>
             <label id="image-ui" hidden><input type="checkbox" id="attach-image" checked> Send it before the text</label>
             <span id="no-image" class="caption">No image yet: invites will be text only.</span>
           </div>
           <div class="row">
-            <label class="file-button">⬆️ <span id="image-upload-label">Upload invite image</span><input type="file" id="image-input" accept="image/png,image/jpeg,image/webp" hidden></label>
-            <button id="download-image" hidden>⬇️ Download image</button>
-            <button id="remove-image" hidden>✕ Remove image</button>
+            <label class="file-button"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg> <span id="image-upload-label">Upload invite image</span><input type="file" id="image-input" accept="image/png,image/jpeg,image/webp" hidden></label>
+            <button id="download-image" hidden><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download image</button>
+            <button id="remove-image" hidden><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg> Remove image</button>
           </div>
           <span id="image-note" class="caption" hidden>This image is too large to keep in the browser, so you'll need to upload it again next time.</span>
         </div>
       </div>
+      <details id="event-box" class="box" style="margin:0 0 12px">
+        <summary><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg> Event details <span id="event-summary" class="caption"></span></summary>
+        <p class="caption">Fill these in once: they replace the matching [blanks] in the message, such as [Date] and [Address], for every guest.</p>
+        <div class="event-grid">
+          <label class="wide">Event name<input id="ev-name" type="text" placeholder="e.g. Aarav's 1st birthday party"></label>
+          <label>Date<input id="ev-date" type="date"></label>
+          <label>Host name<input id="ev-host" type="text" placeholder="e.g. Vinoth &amp; family"></label>
+          <label>Start time<input id="ev-start" type="time"></label>
+          <label>End time (optional)<input id="ev-end" type="time"></label>
+          <label class="wide">Address<input id="ev-address" type="text" placeholder="Venue name and full address"></label>
+        </div>
+        <div id="other-blanks" class="event-grid"></div>
+        <div class="row" style="margin-top:10px">
+          <button id="insert-map-link"><svg class="icon" aria-hidden="true"><use href="#i-map-pin"/></svg> Insert map link</button>
+          <button id="insert-calendar-link"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg> Insert “Add to calendar” link</button>
+        </div>
+        <p class="caption">The links are added at the cursor as [Map link] and [Calendar link], and filled in from the address, date and time.</p>
+      </details>
+      <div id="template-warnings" class="stack" style="margin-bottom:10px"></div>
       <div id="toolbar">
         <span class="ql-formats">
           <button class="ql-bold" title="Bold (⌘B / Ctrl+B)"></button>
@@ -254,19 +338,18 @@
       <textarea id="plain" hidden aria-label="Message"></textarea>
       <p class="caption">Select text and use the toolbar. When you paste from Word, Google Docs or email, bold, italic and
         strikethrough are kept; other styling is dropped (WhatsApp can't show it).</p>
-      <div id="template-warnings" class="stack"></div>
 
       <details class="box">
-        <summary>👁️ Preview: how WhatsApp will show it</summary>
+        <summary><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg> Preview: how WhatsApp will show it</summary>
         <p class="caption" id="preview-label"></p>
         <div id="preview" class="scroll-box"></div>
       </details>
       <details class="box">
-        <summary>📂 Upload or download this message</summary>
+        <summary><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg> Upload or download this message</summary>
         <div class="row" style="margin-top:8px">
-          <label class="file-button">⬆️ Upload a saved message (.txt)<input type="file" id="template-input" accept=".txt,.md,text/plain" hidden></label>
-          <button id="download-template">⬇️ Download this message (.txt)</button>
-          <button id="reset-template">↺ Replace with the sample message</button>
+          <label class="file-button"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg> Upload a saved message (.txt)<input type="file" id="template-input" accept=".txt,.md,text/plain" hidden></label>
+          <button id="download-template"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download this message (.txt)</button>
+          <button id="reset-template"><svg class="icon" aria-hidden="true"><use href="#i-rotate"/></svg> Replace with the sample message</button>
         </div>
         <p class="caption">Your message is also kept in this browser automatically.</p>
       </details>
@@ -274,44 +357,44 @@
 
     <!-- 3. Copy & send -->
     <section class="stack">
-      <h2>📤 3. Copy &amp; send</h2>
+      <h2><svg class="icon" aria-hidden="true"><use href="#i-send"/></svg> 3. Copy &amp; send</h2>
       <div id="savebar" class="savebar stack" hidden>
         <div id="save-status"></div>
         <div class="row">
-          <button id="download-updated">⬇️ Download updated guest list (.xlsx)</button>
+          <button id="download-updated"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download updated guest list (.xlsx)</button>
           <label id="autosave-wrap" hidden><input type="checkbox" id="autosave"> <span id="autosave-label"></span></label>
-          <button id="download-original" class="link">⬇️ Download original guest list (backup)</button>
+          <button id="download-original" class="link"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download original guest list (backup)</button>
         </div>
       </div>
       <p id="send-empty" class="info">Select guests in column 1 to start.</p>
       <div id="send-ui" class="stack" hidden>
         <div class="progress"><div id="progress-bar"></div></div>
         <p id="progress-text"></p>
-        <p id="all-done" class="success" hidden>All selected guests are marked as sent 🎉</p>
+        <p id="all-done" class="success row" hidden><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg> All selected guests are marked as sent.</p>
         <div class="nav">
-          <button id="prev" title="Previous guest">◀ Previous</button>
+          <button id="prev" title="Previous guest"><svg class="icon" aria-hidden="true"><use href="#i-chevron-left"/></svg> Previous</button>
           <select id="picker" aria-label="Guest"></select>
-          <button id="next" title="Next guest">Next ▶</button>
+          <button id="next" title="Next guest">Next <svg class="icon" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
         </div>
         <div class="card stack">
-          <div class="card-head"><strong id="card-name"></strong><span id="card-status" class="muted"></span></div>
+          <div class="card-head"><strong id="card-name"></strong><span id="card-status" class="sent-badge"></span></div>
           <p class="muted">WhatsApp contact: <b id="card-contact"></b></p>
-          <div class="row copy-row">
-            <button id="copy-name">🔍 Copy contact name</button>
-            <button id="copy-image">📷 Copy invite image</button>
-            <button id="copy-text">📋 Copy message text</button>
+          <div class="steps">
+            <button id="copy-name"><span class="step-no">1</span><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg> Copy contact name</button>
+            <button id="copy-image"><span class="step-no">2</span><svg class="icon" aria-hidden="true"><use href="#i-image"/></svg> Copy invite image</button>
+            <button id="copy-text"><span class="step-no">3</span><svg class="icon" aria-hidden="true"><use href="#i-message"/></svg> Copy message text</button>
+            <button id="mark-sent" class="primary wide"><span class="step-no">4</span><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg> Mark as sent &amp; go to next guest</button>
+            <button id="undo-sent" class="wide" hidden><svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg> Undo: mark as not sent</button>
           </div>
           <p id="copy-status" class="status" aria-live="polite"></p>
-          <p id="steps" class="caption"></p>
+          <p id="steps" class="caption">Paste each copy into the guest's WhatsApp chat (⌘V / Ctrl+V) and send it.</p>
           <div id="card-warnings" class="stack"></div>
-          <button id="mark-sent" class="primary">✅ Mark as sent &amp; go to next guest</button>
-          <button id="undo-sent" hidden>↩️ Undo: mark as not sent</button>
-          <div id="post-image" hidden><p class="caption">Post 1: image</p><img id="card-image" class="thumb" alt="Invite image"></div>
-          <p class="caption" id="post-text-label">Post 2: text</p>
+          <div id="post-image" class="post-row" hidden><img id="card-image" class="mini-thumb" alt="Invite image"><span class="caption">Post 1: the invite image</span></div>
+          <p class="caption" id="post-text-label">Post 2: the message</p>
           <div id="card-preview" class="scroll-box"></div>
           <details><summary class="caption">Show the plain text (to copy by hand)</summary><pre id="raw-text" class="raw"></pre></details>
         </div>
-        <button id="download-all">⬇️ Download all selected guests' messages (.txt)</button>
+        <button id="download-all"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Download all selected guests' messages (.txt)</button>
       </div>
     </section>
   </div>
@@ -335,7 +418,9 @@
   const COUNT_PREFIXES = ["estimated count", "adults", "kids", "children", "headcount", "pax"];
   const NO_CATEGORY = "\u0000none";
   const XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-  const KEYS = { template: "invite.template", image: "invite.image", session: "invite.session", theme: "invite.theme" };
+  const KEYS = {
+    template: "invite.template", image: "invite.image", session: "invite.session", theme: "invite.theme", event: "invite.event",
+  };
   const SAMPLE_LIST = "data/WhatsApp Invite List dummy.xlsx";
   const SAMPLE_IMAGE = "data/WhatsApp Invite.png";
   const DEFAULT_TEMPLATE = [
@@ -379,6 +464,8 @@
     sent: new Set(),
     prev: {}, // row -> {invited, invitedOn} before "Mark sent", for Undo
     template: "",
+    // Event details that fill the message's [blanks] for every guest.
+    event: { name: "", date: "", start: "", end: "", address: "", host: "", other: {} },
     image: null, // {name, type, dataUrl, png}
     attach: true,
   };
@@ -434,25 +521,57 @@
     return bytes;
   }
 
-  // Light/Dark chosen in the theme switch, otherwise the device setting.
-  const isDark = () => {
-    const chosen = document.documentElement.dataset.theme;
-    return chosen ? chosen === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
-  };
+  // Theme: the device setting, unless the toggle picked the other one (<html data-theme>).
+  const root = document.documentElement;
+  const deviceDark = () => window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = () => (root.dataset.theme ? root.dataset.theme === "dark" : deviceDark());
 
-  function applyTheme(choice) {
-    if (choice === "light" || choice === "dark") {
-      document.documentElement.dataset.theme = choice;
+  function setTheme(choice) {
+    if (choice) {
+      root.dataset.theme = choice;
       store.set(KEYS.theme, choice);
     } else {
-      choice = "system";
-      delete document.documentElement.dataset.theme;
+      delete root.dataset.theme;
       store.remove(KEYS.theme);
     }
-    for (const button of document.querySelectorAll("[data-theme-choice]")) {
-      button.setAttribute("aria-pressed", String(button.dataset.themeChoice === choice));
-    }
+    renderThemeToggle();
   }
+
+  // The icon shows the current theme; the label says what a click does.
+  function renderThemeToggle() {
+    const dark = isDark();
+    $("theme-icon").setAttribute("href", dark ? "#i-moon" : "#i-sun");
+    const label = `Switch to ${dark ? "light" : "dark"} theme (now ${dark ? "dark" : "light"}` +
+      `${root.dataset.theme ? "" : ", following your device"})`;
+    $("theme-toggle").setAttribute("aria-label", label);
+    $("theme-toggle").title = label;
+  }
+
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  function iconEl(name) {
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "icon");
+    svg.setAttribute("aria-hidden", "true");
+    const use = document.createElementNS(SVG_NS, "use");
+    use.setAttribute("href", `#i-${name}`);
+    svg.append(use);
+    return svg;
+  }
+
+  function warning(text) {
+    return el("p", { className: "warn" }, iconEl("alert"), el("span", { textContent: text }));
+  }
+
+  const timeZone = (() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+    } catch (e) {
+      return "";
+    }
+  })();
+  const eventValues = () => ({ ...state.event, timeZone });
+  // A guest's message: the event's [blanks] filled in, then the guest's {details}.
+  const messageFor = (guest) => W.renderMessage(W.fillBlanks(state.template, eventValues()), guest);
   const fmtNumber = (n) => (Number.isInteger(n) ? n : +n.toFixed(2)).toLocaleString();
   const baseName = () => state.fileName.replace(/\.xlsx$/i, "") || "Guest list";
 
@@ -584,6 +703,7 @@
       search: "",
     });
     $("search").value = "";
+    $("format-help").open = false; // the format help has done its job once a list is loaded
     $("autosave").checked = false;
     $("error").hidden = true;
     $("resume").hidden = true;
@@ -709,7 +829,7 @@
       "6. Category: optional, e.g. Family / Friends / Work - the app can show one category at a time.",
       "7. Estimated Count / Adults / Kids: added up in the app for headcounts.",
       "8. Any column can be used in the message as {Column name}, e.g. {Adults} - add your own columns if you like.",
-      '9. Keep "Invite List" as the first sheet, save as .xlsx and upload it in the app.',
+      '9. Keep "Invite List" as the first sheet, save as .xlsx and upload it at https://vinovator.github.io/event-invite-generator/',
     ].forEach((line, i) => (help.getCell(i + 1, 1).value = line));
     help.getCell("A1").font = { bold: true, size: 13 };
     help.getColumn(1).width = 110;
@@ -1012,7 +1132,7 @@
     const loaded = Boolean(state.workbook);
     $("guests-empty").hidden = loaded;
     $("guests-ui").hidden = !loaded;
-    $("file-name").textContent = loaded ? `📄 ${state.fileName}` : "";
+    $("file-name").replaceChildren(...(loaded ? [iconEl("sheet"), state.fileName] : []));
     if (!loaded) return;
 
     const marked = state.guests.filter((g) => g.toInvite);
@@ -1064,28 +1184,69 @@
       `Selected: ${state.selected.length} invite${state.selected.length === 1 ? "" : "s"}${totals ? ` · ${totals}` : ""}`;
   }
 
+  // Shown once, here (not on every guest's card).
   function renderTemplateWarnings() {
     const box = $("template-warnings");
     box.replaceChildren();
     const keys = state.cols ? state.cols.all.map((c) => c.key) : [];
-    const issues = W.templateIssues(state.template, keys);
+    const issues = W.templateIssues(W.fillBlanks(state.template, eventValues()), keys);
     if (issues.brackets.length) {
-      box.append(el("p", { className: "warn", textContent: `⚠️ Still to fill in: ${issues.brackets.join(", ")}` }));
+      box.append(warning(`Still to fill in: ${issues.brackets.join(", ")}. Add them under Event details above.`));
     }
     if (state.cols && issues.unknown.length) {
-      box.append(el("p", { className: "warn", textContent: `⚠️ No column called ${issues.unknown.join(", ")} , so it will be sent as typed.` }));
+      box.append(warning(`No column called ${issues.unknown.join(", ")}, so it will be sent as typed.`));
     }
     if (issues.missingName) {
-      box.append(el("p", { className: "warn", textContent: "⚠️ No {name} in the message, so every guest gets the same greeting." }));
+      box.append(warning("No {name} in the message, so every guest gets the same greeting."));
     }
   }
 
+  // ------------------------------------------------------------- event details
+
+  const EVENT_INPUTS = {
+    "ev-name": "name", "ev-date": "date", "ev-start": "start", "ev-end": "end", "ev-address": "address", "ev-host": "host",
+  };
+
+  function saveEvent() {
+    store.set(KEYS.event, JSON.stringify(state.event));
+  }
+
+  let otherBlankKeys = null;
+  function renderEventPanel() {
+    const blanks = W.templateBlanks(state.template);
+    // Fields for the message's own [blanks], e.g. [Activity/Meal]; rebuilt only when
+    // that set changes, so typing in them keeps the focus.
+    const others = blanks.filter((b) => !b.field);
+    const keys = others.map((b) => b.key).join("|");
+    if (keys !== otherBlankKeys) {
+      otherBlankKeys = keys;
+      $("other-blanks").replaceChildren(
+        ...others.map((b) => {
+          const input = el("input", { type: "text", value: state.event.other[b.key] || "" });
+          input.addEventListener("input", () => {
+            state.event.other[b.key] = input.value;
+            saveEvent();
+            renderMessages();
+          });
+          return el("label", { className: "wide" }, b.text, input);
+        })
+      );
+    }
+    const left = W.templateBlanks(W.fillBlanks(state.template, eventValues())).length;
+    $("event-summary").textContent = !blanks.length
+      ? "(the message has no [blanks])"
+      : left
+        ? `(${blanks.length - left} of ${blanks.length} [blanks] filled in)`
+        : `(all ${blanks.length} [blanks] filled in ✓)`;
+  }
+
   function renderMessages() {
+    renderEventPanel();
     renderTemplateWarnings();
     const first = state.selected.length ? state.byRow.get(state.selected[0]) : null;
     const sample = first || { name: "Guest Name", fields: {} };
     $("preview-label").textContent = `Preview for ${sample.name}:`;
-    $("preview").innerHTML = W.whatsappPreviewHtml(W.renderMessage(state.template, sample), isDark());
+    $("preview").innerHTML = W.whatsappPreviewHtml(messageFor(sample), isDark());
     renderCard();
   }
 
@@ -1134,7 +1295,7 @@
     const picker = $("picker");
     picker.replaceChildren(
       ...state.selected.map((row) =>
-        el("option", { value: String(row), textContent: `${state.sent.has(row) ? "✅" : "⏳"} ${guestLabel(state.byRow.get(row))}` }))
+        el("option", { value: String(row), textContent: `${state.sent.has(row) ? "✓" : "○"} ${guestLabel(state.byRow.get(row))}` }))
     );
     picker.value = String(state.current);
     const pos = state.selected.indexOf(state.current);
@@ -1142,17 +1303,18 @@
     $("next").disabled = pos >= state.selected.length - 1;
 
     const guest = state.byRow.get(state.current);
-    const message = W.renderMessage(state.template, guest);
+    const message = messageFor(guest);
     const isSent = state.sent.has(guest.row);
     const withImage = Boolean(state.image && state.attach);
     $("card-name").textContent = guest.name;
     const sentAt = isSent ? invitedOnText(guest.row) : "";
-    $("card-status").textContent = isSent ? `✅ sent${sentAt ? ` ${sentAt}` : ""}` : "";
+    $("card-status").replaceChildren(...(isSent ? [iconEl("check-circle"), `Sent${sentAt ? ` ${sentAt}` : ""}`] : []));
     $("card-contact").textContent = guest.contact;
     $("copy-image").hidden = !withImage;
-    $("steps").textContent = withImage
-      ? "Open this guest's chat in WhatsApp (🔍 Copy contact name helps you search), then: 📷 Copy invite image → paste (⌘V / Ctrl+V) → send, then 📋 Copy message text → paste → send."
-      : "Open this guest's chat in WhatsApp (🔍 Copy contact name helps you search), then: 📋 Copy message text → paste (⌘V / Ctrl+V) → send.";
+    // Numbered steps; without an image the image step drops out.
+    ["copy-name", ...(withImage ? ["copy-image"] : []), "copy-text", "mark-sent"].forEach((id, i) => {
+      $(id).querySelector(".step-no").textContent = String(i + 1);
+    });
     $("mark-sent").hidden = isSent;
     $("undo-sent").hidden = !isSent;
     $("post-image").hidden = !withImage;
@@ -1161,14 +1323,11 @@
     $("card-preview").innerHTML = W.whatsappPreviewHtml(message, isDark());
     $("raw-text").textContent = message;
 
+    // Only what's specific to this guest; message-wide warnings are shown once, in column 2.
     const warnings = $("card-warnings");
     warnings.replaceChildren();
-    const issues = W.templateIssues(state.template, state.cols.all.map((c) => c.key));
     const empty = W.emptyFields(state.template, guest);
-    const problems = [];
-    if (issues.brackets.length) problems.push(`still to fill in: ${issues.brackets.join(", ")}`);
-    if (empty.length) problems.push(`${empty.join(", ")} ${empty.length === 1 ? "is" : "are"} empty for ${guest.name}`);
-    if (problems.length) warnings.append(el("p", { className: "warn", textContent: `⚠️ Message ${problems.join("; ")}.` }));
+    if (empty.length) warnings.append(warning(`${empty.join(", ")} ${empty.length === 1 ? "is" : "are"} empty for ${guest.name}.`));
   }
 
   function renderAll() {
@@ -1348,7 +1507,7 @@
 
   $("copy-text").addEventListener("click", async () => {
     flushEdit(); // copy what's in the editor right now, even mid-typing
-    const ok = await copyText(W.renderMessage(state.template, state.byRow.get(state.current)));
+    const ok = await copyText(messageFor(state.byRow.get(state.current)));
     copyStatus(ok ? "✓ Message text copied. Paste it into the chat (⌘V / Ctrl+V) and send." : "Couldn't copy. Open “Show the plain text” below and copy it by hand.", ok);
   });
 
@@ -1364,7 +1523,7 @@
     const text = state.selected
       .map((row) => {
         const guest = state.byRow.get(row);
-        return `--- MESSAGE FOR: ${guest.name} ---\n${W.renderMessage(state.template, guest)}\n${"-".repeat(40)}\n`;
+        return `--- MESSAGE FOR: ${guest.name} ---\n${messageFor(guest)}\n${"-".repeat(40)}\n`;
       })
       .join("\n");
     downloadBlob(text, "invitation_messages.txt", "text/plain;charset=utf-8");
@@ -1408,18 +1567,38 @@
     location.reload();
   });
 
-  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", renderMessages);
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    renderThemeToggle();
+    renderMessages();
+  });
 
-  for (const button of document.querySelectorAll("[data-theme-choice]")) {
-    button.addEventListener("click", () => {
-      applyTheme(button.dataset.themeChoice);
-      renderMessages(); // the WhatsApp bubbles have their own light/dark colours
+  $("theme-toggle").addEventListener("click", () => {
+    const next = isDark() ? "light" : "dark";
+    // Switching to what the device already uses means "follow the device" again.
+    setTheme(next === (deviceDark() ? "dark" : "light") ? null : next);
+    renderMessages(); // the WhatsApp bubbles have their own light/dark colours
+  });
+
+  for (const [id, field] of Object.entries(EVENT_INPUTS)) {
+    $(id).addEventListener("input", (event) => {
+      state.event[field] = event.target.value;
+      saveEvent();
+      renderMessages();
     });
   }
+  $("insert-map-link").addEventListener("click", () => insertAtCursor("[Map link]"));
+  $("insert-calendar-link").addEventListener("click", () => insertAtCursor("[Calendar link]"));
 
   // ------------------------------------------------------------------ start-up
 
-  applyTheme(store.get(KEYS.theme));
+  renderThemeToggle();
+  try {
+    Object.assign(state.event, JSON.parse(store.get(KEYS.event) || "{}"));
+  } catch (e) {
+    store.remove(KEYS.event);
+  }
+  state.event.other = state.event.other || {};
+  for (const [id, field] of Object.entries(EVENT_INPUTS)) $(id).value = state.event[field] || "";
   setupEditor();
   state.template = store.get(KEYS.template) ?? DEFAULT_TEMPLATE;
   loadEditor(state.template);

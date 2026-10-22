@@ -118,5 +118,50 @@ check("template issues", templateIssues("Hi {name} at [Venue], [Venue] and {Tabl
 check("missing {name}", templateIssues("Hello all", []).missingName, true);
 check("empty fields for a guest", emptyFields("{name}: {Adults} adults, {Kids} kids, {Table}", ravi), ["{Kids}"]);
 
+// --- Event details: [blanks] filled once for every guest
+const {
+  fillBlanks, templateBlanks, formatEventDate, formatClock, mapLink, calendarLink,
+} = require(path.join(__dirname, "..", "convert.js"));
+check("event date", formatEventDate("2026-11-14"), "Saturday 14 November 2026");
+check("bad event date", formatEventDate("14/11/2026"), "");
+check("clock pm", formatClock("18:30"), "6:30 pm");
+check("clock midnight", formatClock("00:05"), "12:05 am");
+check("clock noon", formatClock("12:00"), "12:00 pm");
+
+const party = {
+  name: "Aarav's 1st Birthday", date: "2026-11-14", start: "18:30", end: "22:00",
+  address: "Hilton Hall, 1 High St, Leeds", host: "Vinoth & family",
+  other: { "activity meal": "dinner" }, timeZone: "Europe/London",
+};
+check("fills the sample template's blanks", fillBlanks(sample, party).split("\n").filter((l) => /Date|Time|Address|Host|join|Subject/.test(l)), [
+  "*Subject: Invitation to Aarav's 1st Birthday 🎉*",
+  "Please join us for dinner.",
+  "*Date:* Saturday 14 November 2026",
+  "*Time:* 6:30 pm to 10:00 pm",
+  "*Address:* Hilton Hall, 1 High St, Leeds",
+]);
+check("host blank in bold", fillBlanks("*[Host Name]*", party), "*Vinoth & family*");
+check("synonyms and spacing", fillBlanks("[venue] / [ Start Time ] / [EVENT]", party),
+  "Hilton Hall, 1 High St, Leeds / 6:30 pm to 10:00 pm / Aarav's 1st Birthday");
+check("unknown or empty blanks stay", fillBlanks("[Dress code] [Date]", { other: {} }), "[Dress code] [Date]");
+check("no event leaves text alone", fillBlanks("[Date]", null), "[Date]");
+check("map link", mapLink(party), "https://www.google.com/maps/search/?api=1&query=Hilton%20Hall%2C%201%20High%20St%2C%20Leeds");
+check("map link needs an address", mapLink({}), "");
+const cal = new URL(calendarLink(party));
+check("calendar link", [cal.origin + cal.pathname, cal.searchParams.get("action"), cal.searchParams.get("text"),
+  cal.searchParams.get("dates"), cal.searchParams.get("location"), cal.searchParams.get("ctz")],
+  ["https://calendar.google.com/calendar/render", "TEMPLATE", "Aarav's 1st Birthday", "20261114T183000/20261114T220000",
+    "Hilton Hall, 1 High St, Leeds", "Europe/London"]);
+check("calendar: no end time = 3 hours", new URL(calendarLink({ date: "2026-11-14", start: "18:30" })).searchParams.get("dates"),
+  "20261114T183000/20261114T213000");
+check("calendar: ends after midnight", new URL(calendarLink({ date: "2026-12-31", start: "20:00", end: "01:00" })).searchParams.get("dates"),
+  "20261231T200000/20270101T010000");
+check("calendar: all-day without a time", new URL(calendarLink({ date: "2026-11-14" })).searchParams.get("dates"), "20261114/20261115");
+check("calendar needs a date", calendarLink({ name: "x" }), "");
+check("links fill their blanks", fillBlanks("Map: [Map link]\nAdd: [Calendar link]", party).startsWith(
+  "Map: https://www.google.com/maps/search/?api=1&query="), true);
+check("template blanks", templateBlanks(sample).map((b) => `${b.text}=${b.field}`),
+  ["[Event Name]=name", "[Activity/Meal]=null", "[Date]=date", "[Time]=time", "[Address]=address", "[Host Name]=host"]);
+
 console.log(`\nFAILURES: ${failures}`);
 process.exitCode = failures ? 1 : 0;

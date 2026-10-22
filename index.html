@@ -7,6 +7,13 @@
 <meta name="description" content="Send personalised WhatsApp invitations from an Excel guest list, one guest at a time. Runs in your browser; nothing is uploaded.">
 <link rel="canonical" href="https://vinovator.github.io/event-invite-generator/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23008069'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate(3.6 3.6) scale(.7)'%3E%3Crect width='20' height='16' x='2' y='4' rx='2'/%3E%3Cpath d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/%3E%3C/g%3E%3C/svg%3E">
+<!-- Install as an app: name, icons and full-screen window (manifest), the iPhone home-screen icon,
+     and the window's title bar colour (kept in step with the theme by renderThemeToggle). -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="Invitations">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161b22" media="(prefers-color-scheme: dark)">
 <script>
   // Apply a saved Light/Dark choice before the page is drawn (no flash of the wrong theme).
   try {
@@ -249,7 +256,11 @@
   .warn .icon { margin-top: 2px; }
   .warn .btn { margin: -6px -4px -6px auto; color: inherit; }
   .warn .btn:hover:not(:disabled) { background: color-mix(in srgb, currentColor 12%, transparent); }
-  .note { padding: 10px 12px; border-radius: 10px; background: var(--info-bg); color: var(--info-text); font-size: 14px; }
+  .note { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 8px; padding: 10px 12px; border-radius: 10px;
+    background: var(--info-bg); color: var(--info-text); font-size: 14px; }
+  .note > span { flex: 1 1 180px; }
+  .note .btn { margin: -6px -4px -6px auto; color: inherit; }
+  .note .btn:hover:not(:disabled) { background: color-mix(in srgb, currentColor 12%, transparent); }
   .pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 99px; background: var(--surface-2);
     color: var(--muted); font-size: 12.5px; font-weight: 600; line-height: 1.6; white-space: nowrap; }
   .pill.ok { background: var(--ok-tint); color: var(--ok); }
@@ -309,21 +320,24 @@
   .file-name { overflow: hidden; color: var(--text); font-weight: 500; white-space: nowrap; text-overflow: ellipsis; }
   .file-chip .btn { min-height: 28px; padding: 2px 10px; border-radius: 99px; font-size: 13px; white-space: nowrap; }
   @media (pointer: coarse) { .file-chip .btn { min-height: 36px; } }
-  #column-notes { margin-top: 12px; }
+  #sample-note, #column-notes { margin-top: 12px; }
   .filters { display: grid; gap: 8px; margin-top: 16px; }
   .search { position: relative; }
   .search .icon { position: absolute; top: 50%; left: 12px; color: var(--muted); transform: translateY(-50%); pointer-events: none; }
   .search input { width: 100%; padding-left: 38px; }
-  .list-tools { display: flex; flex-wrap: wrap; gap: 4px; margin: 12px 0 8px; }
+  /* Text-only links, so both fit on one line in the guests column. */
+  .list-tools { display: flex; flex-wrap: wrap; gap: 0 8px; margin: 8px 0 6px -6px; }
+  .list-tools .btn { min-height: 32px; padding: 4px 6px; font-size: 13px; }
+  @media (pointer: coarse) { .list-tools .btn { min-height: 40px; } }
   .guest-list { max-height: max(260px, calc(100vh - 470px)); overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
   @media (max-width: 900px) { .guest-list { max-height: 55vh; } }
-  .guest { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 14px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .guest { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px; border-bottom: 1px solid var(--border); cursor: pointer; }
   .guest:last-child { border-bottom: 0; }
   .guest:hover { background: var(--surface-2); }
   .guest:has(input:checked) { background: var(--accent-tint); }
   .who { display: flex; flex: 1; flex-direction: column; min-width: 0; }
-  .guest-name { font-weight: 600; }
-  .sub { color: var(--muted); font-size: 13px; }
+  .guest-name { font-weight: 600; line-height: 1.3; }
+  .sub { color: var(--muted); font-size: 13px; line-height: 1.3; }
   .list-empty { padding: 20px 16px; color: var(--muted); text-align: center; }
   #autosave-wrap { margin-top: 12px; }
 
@@ -540,8 +554,8 @@
   <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
   <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
-  <symbol id="i-list-checks" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
   <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-smartphone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
 </svg>
 
@@ -565,6 +579,7 @@
           <button type="button" class="menu-item" role="menuitem" id="menu-download-all"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download all selected guests' messages (.txt)</button>
           <button type="button" class="menu-item" role="menuitem" id="menu-download-blank"><svg class="icon" aria-hidden="true"><use href="#i-sheet"/></svg>Download blank guest list template (.xlsx)</button>
           <div class="menu-sep" role="separator"></div>
+          <button type="button" class="menu-item" role="menuitem" id="menu-install" hidden><svg class="icon" aria-hidden="true"><use href="#i-smartphone"/></svg>Install this app</button>
           <button type="button" class="menu-item" role="menuitem" id="menu-help"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg>What should my Excel guest list look like?</button>
           <div class="menu-sep" role="separator"></div>
           <button type="button" class="menu-item danger" role="menuitem" id="clear-data" title="Removes the guest list, message, image, event details and progress kept in this browser"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg><span class="label">Clear data saved in this browser</span></button>
@@ -623,14 +638,18 @@
             <button type="button" id="change-list" class="btn tertiary">Change file</button>
           </span>
         </div>
+        <div id="sample-note" class="note" hidden>
+          <span>This is the sample guest list, to try things out. Its progress isn't kept after you close the page.</span>
+          <button type="button" id="sample-note-close" class="btn tertiary small">Dismiss</button>
+        </div>
         <p id="column-notes" class="note" hidden></p>
         <div class="filters">
           <select id="category" aria-label="Show guests from this category"></select>
           <div class="search"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="search" id="search" placeholder="Search guests by name" aria-label="Search guests by name"></div>
         </div>
         <div class="list-tools">
-          <button type="button" id="select-visible" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-list-checks"/></svg><span id="select-visible-label">Select all shown</span></button>
-          <button type="button" id="clear-selection" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>Clear selection</button>
+          <button type="button" id="select-visible" class="btn tertiary small"><span id="select-visible-label">Select all shown</span></button>
+          <button type="button" id="clear-selection" class="btn tertiary small">Clear selection</button>
         </div>
         <div id="guest-list" class="guest-list"></div>
         <label id="autosave-wrap" class="check" hidden><input type="checkbox" id="autosave"> <span id="autosave-label"></span></label>
@@ -892,6 +911,7 @@
     original: null, // bytes as opened, for "Download original"
     fileName: "",
     sample: false, // the sample guest list: its progress isn't saved
+    sampleNoteClosed: false, // "Dismiss" on the note saying so
     handle: null, // file handle when opened with the file picker (Chrome/Edge), to save back
     autoSave: false,
     changed: false, // the workbook has changes not yet downloaded or saved to the file
@@ -938,12 +958,12 @@
   }
 
   let toastTimer = null;
-  function toast(message) {
+  function toast(message, duration = 2200) {
     const box = $("toast");
     box.textContent = message;
     box.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => box.classList.remove("show"), 2200);
+    toastTimer = setTimeout(() => box.classList.remove("show"), duration);
   }
 
   function downloadBlob(data, fileName, type) {
@@ -1007,6 +1027,8 @@
       `${root.dataset.theme ? "" : ", following your device"})`;
     $("theme-toggle").setAttribute("aria-label", label);
     $("theme-toggle").title = label;
+    // The installed app's title bar matches the app bar.
+    for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.content = dark ? "#161b22" : "#ffffff";
   }
 
   const SVG_NS = "http://www.w3.org/2000/svg";
@@ -1166,6 +1188,7 @@
     const before = state.view;
     Object.assign(state, {
       workbook, cols, guests, byRow, fileName, handle, sample,
+      sampleNoteClosed: false,
       autoSave: false,
       changed: Boolean(session && session.changed),
       bytes: new Uint8Array(bytes),
@@ -1727,15 +1750,14 @@
     $("file-name").textContent = state.fileName;
     const marked = state.guests.filter((g) => g.toInvite);
     const already = marked.filter((g) => g.invited && !state.sent.has(g.row)).length;
-    $("breakdown").textContent = `${plural(state.available.length, "guest")} to invite` +
-      (already ? ` · ${already} already invited (not shown)` : "");
+    $("breakdown").textContent = `${state.available.length} to invite` + (already ? ` · ${already} already invited (hidden)` : "");
 
     const notes = [];
-    if (state.sample) notes.push("This is the sample guest list, to try things out. Its progress isn't kept after you close the page.");
     if (!state.cols.invite) notes.push("No 'Add to Invite List?' column, so everyone is shown.");
     if (!state.cols.invited) notes.push("No 'Invited?' column yet. It will be added when you mark a guest as sent.");
     $("column-notes").textContent = notes.join(" ");
     $("column-notes").hidden = !notes.length;
+    $("sample-note").hidden = !state.sample || state.sampleNoteClosed;
 
     // Category filter
     const counts = new Map();
@@ -2016,6 +2038,7 @@
     $("menu-download-updated").hidden = !loaded;
     $("menu-download-original").hidden = !(loaded && state.original);
     $("menu-download-all").hidden = !state.selected.length;
+    $("menu-install").hidden = installed || !(installPrompt || appleDevice);
   }
 
   function renderAll() {
@@ -2127,6 +2150,11 @@
   $("search").addEventListener("input", (event) => {
     state.search = event.target.value;
     renderGuests();
+  });
+
+  $("sample-note-close").addEventListener("click", () => {
+    state.sampleNoteClosed = true;
+    $("sample-note").hidden = true;
   });
 
   $("select-visible").addEventListener("click", () => {
@@ -2347,6 +2375,33 @@
   confirmClick($("clear-data"), "Click again to clear everything", () => {
     Object.values(KEYS).forEach((key) => store.remove(key));
     location.reload();
+  });
+
+  // Install as an app: Chrome and Edge offer it through "beforeinstallprompt" (used from the More menu);
+  // on an iPhone or iPad it's Share, then Add to Home Screen.
+  let installPrompt = null;
+  const installed = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  const appleDevice = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault(); // offered from the More menu instead of the browser's own banner
+    installPrompt = event;
+    renderMenu();
+  });
+  window.addEventListener("appinstalled", () => {
+    installPrompt = null;
+    renderMenu();
+    toast("App installed");
+  });
+  $("menu-install").addEventListener("click", async () => {
+    if (!installPrompt) {
+      toast("Tap the Share button, then “Add to Home Screen”.", 6000);
+      return;
+    }
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    renderMenu();
   });
 
   // More menu

@@ -19,6 +19,7 @@ A browser-only page for preparing personalised WhatsApp invitations from an Exce
   - a guest's message: `renderMessage`, `templateIssues`, `emptyFields`;
   - event blanks and links: `fillBlanks`, `templateBlanks`, `formatEventDate`, `formatClock`, `mapLink`, `calendarLink`.
 - **`tests/convert.test.js`**: `node tests/convert.test.js`, no dependencies. Run it after touching `convert.js`.
+- **`manifest.webmanifest`** and **`icons/`** (192, 512, maskable 512 and the 180 px Apple touch icon): install as an app, opening in its own window. The More menu's "Install this app" uses Chrome/Edge's `beforeinstallprompt` (shown only when the browser offers it); on an iPhone or iPad it explains Share, then Add to Home Screen. The two `<meta name="theme-color">` tags are kept in step with the theme by `renderThemeToggle`, so the installed window's title bar matches the app bar. No service worker: nothing is cached, so a deploy shows up straight away.
 - **The sample** ("Try with a sample guest list") is built in the script, not loaded from files, so it also works from `file://`: `guestListWorkbook(SAMPLE_GUESTS)` (the same builder as the blank template) and `sampleImage()` (a placeholder drawn on a canvas). Sample guests are numbered (Guest-1, Guest-2…), not made-up names. `state.sample` stops it from being saved, so it never replaces a real session waiting to be resumed, and its image isn't kept.
 
 ## Screens

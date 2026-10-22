@@ -14,7 +14,7 @@ Everything runs in your browser: your guest list, message and progress never lea
 
 1. **Choose guests:** filter by **Category**, search, then **Select all shown** or tick guests one by one. The bar at the bottom adds up the headcount (Estimated Count, Adults, Kids…).
 2. **Write the invitation:**
-   - **Invite image:** upload it once (or drop it on the page). It's sent as its own post, before the text.
+   - **Invite image:** upload it once (or drop it on the page). It's sent as its own post, before the message.
    - **Message:** write it in the Word-like editor (bold, italic, strikethrough, monospace, lists, quotes). **+ Insert a guest detail** adds `{name}` or any column, e.g. `{Adults}`. **WhatsApp preview** shows exactly what a guest will get. Anything still to fill in is listed above the message, with a button to fix it.
 
 **Event details** (optional): enter the event name, date, start and end time, address and host once, and they fill the message's `[blanks]`, such as `[Date]` and `[Address]`, for every guest. **Insert map link** and **Insert "Add to calendar" link** add a Google Maps link and a Google Calendar link. You can also skip this and type the details straight into the message.
@@ -63,7 +63,7 @@ Headers go on **row 2** of the **first sheet** (row 1 is free for notes or total
 
 ## Formatting
 
-Select text and use the toolbar, or press **⌘B / Ctrl+B** (bold), **⌘I / Ctrl+I** (italic), **⌘⇧X / Ctrl+Shift+X** (strikethrough). **Preview: how WhatsApp will show it** shows exactly what the guest will see.
+Select text and use the toolbar, or press **⌘B / Ctrl+B** (bold), **⌘I / Ctrl+I** (italic), **⌘⇧X / Ctrl+Shift+X** (strikethrough). **WhatsApp preview** shows exactly what the guest will see.
 
 Behind the scenes the message is kept in WhatsApp's own formatting. That's what gets copied and what *Download this message (.txt)* saves: `*bold*`, `_italic_`, `~strike~`, ```` ```monospace``` ````, `- list`, `> quote`. WhatsApp has no underline, colours or font sizes, and can't format part of a word, so those are dropped. A link pasted from a web page keeps its address as text.
 

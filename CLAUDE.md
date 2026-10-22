@@ -73,7 +73,7 @@ All state is in the `state` object inside the IIFE. localStorage keys:
 
 **Theme:** a script in `<head>` sets `<html data-theme>` before the page is drawn. The sun/moon toggle switches between light and dark; choosing what the device already uses clears the saved choice, so the page follows the device again. `isDark()` follows the same rule for the WhatsApp preview bubbles.
 
-**Saving into the opened file:** "Also save changes straight into <file>" (under the guest list) uses the File System Access API (`showOpenFilePicker` + `createWritable`, Chrome/Edge desktop only). It's opt-in per session, and writes go through the serialized `saving` promise chain. Other browsers use "Download updated guest list".
+**Saving into the opened file:** "Also save changes straight into <file>" (under the guest list) uses the File System Access API (`showOpenFilePicker` + `createWritable`, Chrome/Edge desktop only). It's opt-in per session, and writes go through the serialized `saving` promise chain. Other browsers use "Download updated guest list (.xlsx)".
 
 ## Copying
 

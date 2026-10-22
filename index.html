@@ -607,7 +607,7 @@
       <p id="resume-text"></p>
       <div class="row">
         <button type="button" id="resume-yes" class="btn primary"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Resume where I left off</button>
-        <button type="button" id="resume-no" class="btn tertiary">Start fresh</button>
+        <button type="button" id="resume-no" class="btn tertiary" title="Forgets the unfinished list. Your message, image and event details stay.">Discard unfinished list</button>
       </div>
     </div>
     <div id="dropzone" class="dropzone">
@@ -664,8 +664,8 @@
           <div class="image-info">
             <div class="image-title">
               <h3>Invite image</h3>
-              <label id="image-ui" class="check" hidden><input type="checkbox" id="attach-image" checked> Send it before the text</label>
-              <span id="no-image" class="caption">No image yet: invites will be text only.</span>
+              <label id="image-ui" class="check" hidden><input type="checkbox" id="attach-image" checked> Send it before the message</label>
+              <span id="no-image" class="caption">No image yet: invitations will be text only.</span>
             </div>
             <div class="image-actions">
               <button type="button" id="image-upload" class="btn small"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg><span id="image-upload-label">Upload invite image</span></button>
@@ -760,11 +760,11 @@
   <section id="view-send" hidden>
     <div class="send-panel">
       <div class="send-top">
-        <button type="button" id="exit-send" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back to guests &amp; message</button>
+        <button type="button" id="exit-send" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back to guests &amp; invitation</button>
         <span id="progress-text" class="progress-text"></span>
       </div>
       <div class="progress" aria-hidden="true"><div id="progress-bar"></div></div>
-      <p id="send-save" class="send-save" hidden><span id="send-save-text"></span><button type="button" id="send-download" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download updated guest list</button></p>
+      <p id="send-save" class="send-save" hidden><span id="send-save-text"></span><button type="button" id="send-download" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download updated guest list (.xlsx)</button></p>
       <div id="summary" class="card summary-card" hidden>
         <span class="done-icon"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg></span>
         <h2 id="summary-title" tabindex="-1"></h2>
@@ -1285,7 +1285,7 @@
           } catch (err) {
             state.autoSave = false;
             $("autosave").checked = false;
-            showError(`Couldn't save into ${state.fileName} (${err.message}). Use "Download updated guest list" instead.`);
+            showError(`Couldn't save into ${state.fileName} (${err.message}). Use “Download updated guest list (.xlsx)” instead.`);
           }
         }
         saveSession();
@@ -1750,11 +1750,11 @@
     $("file-name").textContent = state.fileName;
     const marked = state.guests.filter((g) => g.toInvite);
     const already = marked.filter((g) => g.invited && !state.sent.has(g.row)).length;
-    $("breakdown").textContent = `${state.available.length} to invite` + (already ? ` · ${already} already invited (hidden)` : "");
+    $("breakdown").textContent = `${state.available.length} to invite` + (already ? ` · ${already} invited earlier (hidden)` : "");
 
     const notes = [];
-    if (!state.cols.invite) notes.push("No 'Add to Invite List?' column, so everyone is shown.");
-    if (!state.cols.invited) notes.push("No 'Invited?' column yet. It will be added when you mark a guest as sent.");
+    if (!state.cols.invite) notes.push("No “Add to Invite List?” column, so everyone is shown.");
+    if (!state.cols.invited) notes.push("No “Invited?” column yet. It will be added when you mark a guest as sent.");
     $("column-notes").textContent = notes.join(" ");
     $("column-notes").hidden = !notes.length;
     $("sample-note").hidden = !state.sample || state.sampleNoteClosed;
@@ -1874,7 +1874,7 @@
     const left = W.templateBlanks(W.fillBlanks(state.template, eventValues())).length;
     const summary = $("event-summary");
     summary.className = `pill${!blanks.length ? "" : left ? " warn" : " ok"}`;
-    summary.textContent = !blanks.length ? "No [blanks]"
+    summary.textContent = !blanks.length ? "No [blanks] in the message"
       : left ? `${blanks.length - left} of ${blanks.length} filled in` : `All ${blanks.length} filled in`;
   }
 
@@ -1928,7 +1928,7 @@
     if (has) setSrc($("image-thumb"), state.image.dataUrl);
     $("image-upload-label").textContent = has ? "Change image" : "Upload invite image";
     $("no-image").hidden = has && state.attach;
-    $("no-image").textContent = has ? "Not attached: invites will be text only." : "No image yet: invites will be text only.";
+    $("no-image").textContent = has ? "Not attached: invitations will be text only." : "No image yet: invitations will be text only.";
   }
 
   function renderSaving() {
@@ -2001,7 +2001,7 @@
     $("mark-sent").hidden = isSent;
     $("undo-sent").hidden = !isSent;
     renderSteps();
-    $("card-caption").textContent = withImage() ? "Preview: the image and the message go as two posts" : "Preview of the message";
+    $("card-caption").textContent = withImage() ? "WhatsApp preview: the image, then the message" : "WhatsApp preview of the message";
     renderChat("card", message);
     $("raw-text").textContent = message;
 
@@ -2312,7 +2312,7 @@
     flushEdit(); // copy what's in the editor right now, even mid-typing
     const ok = await copyText(messageFor(state.byRow.get(state.current)));
     if (ok) markCopied("copy-text");
-    copyStatus(ok ? "Message text copied. Paste it into the chat and send it." : "Couldn't copy. Open “Show the plain text” below and copy it by hand.", ok);
+    copyStatus(ok ? "Message text copied. Paste it into the chat and send it." : "Couldn't copy. Open “Show the plain text” under the preview and copy it by hand.", ok);
   });
 
   $("mark-sent").addEventListener("click", () => {

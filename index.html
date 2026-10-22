@@ -1849,7 +1849,7 @@
       const guest = state.byRow.get(row);
       for (const field of W.emptyFields(state.template, guest)) {
         if (!empty.has(field)) empty.set(field, []);
-        empty.get(field).push(guest.name);
+        empty.get(field).push(guestLabel(guest)); // "Dup · row 3" when two guests share a name, as in the list
       }
     }
     for (const [field, names] of empty) {

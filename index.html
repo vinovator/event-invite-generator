@@ -50,6 +50,7 @@
     --info-text: #1d4f91;
     --chat-bg: #efeae2;
     --bubble: #d9fdd3;
+    --chip-bg: #ffffff;
     --shadow: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.08);
     --shadow-lg: 0 16px 32px -8px rgba(16, 24, 40, 0.18), 0 4px 8px -4px rgba(16, 24, 40, 0.08);
     --ring: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
@@ -82,6 +83,7 @@
       --info-text: #9ccaff;
       --chat-bg: #0b141a;
       --bubble: #005c4b;
+      --chip-bg: #182229;
       --shadow: 0 0 0 1px #242a33;
       --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px #2c333d;
     }
@@ -111,6 +113,7 @@
     --info-text: #9ccaff;
     --chat-bg: #0b141a;
     --bubble: #005c4b;
+    --chip-bg: #182229;
     --shadow: 0 0 0 1px #242a33;
     --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px #2c333d;
   }
@@ -407,9 +410,12 @@
   }
 
   /* WhatsApp-style preview: outgoing bubbles on the chat background */
-  .chat { display: grid; justify-items: end; gap: 6px; padding: 12px; border-radius: 12px; background: var(--chat-bg); }
+  .chat { display: grid; justify-items: end; gap: 6px; padding: 12px; border-radius: 12px; background: var(--chat-bg);
+    font-size: 15px; line-height: 1.45; }
   .chat > * { max-width: 94%; min-width: 0; }
   .chat.scroll { max-height: calc(25 * 1.5em + 24px); overflow-y: auto; }
+  .chat-chip { justify-self: center; padding: 3px 10px; border-radius: 8px; background: var(--chip-bg); color: var(--muted);
+    font-size: 12.5px; line-height: 1.5; text-align: center; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08); }
   .img-bubble { padding: 3px; border-radius: 8px; background: var(--bubble); box-shadow: 0 1px 1px rgba(0, 0, 0, 0.13); }
   .img-bubble img { display: block; max-width: 100%; max-height: 240px; border-radius: 6px; }
 
@@ -434,8 +440,9 @@
 
   /* ------------------------------------------------------------ send mode: one guest at a time */
   .send-panel { display: grid; gap: 12px; max-width: 1120px; margin: 0 auto; }
-  .send-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .send-top .btn { margin-left: -8px; }
+  /* One row on a computer: back, progress, count and (mid-way) the download link. */
+  .send-head { display: grid; grid-template-columns: auto minmax(80px, 1fr) auto auto; align-items: center; gap: 8px 16px; }
+  #exit-send { margin-left: -8px; }
   .progress-text { font-size: 14px; font-weight: 600; white-space: nowrap; }
   .progress { height: 6px; overflow: hidden; border-radius: 99px; background: var(--border); }
   .progress > div { width: 0; height: 100%; border-radius: 99px; background: var(--accent); transition: width 0.25s; }
@@ -448,12 +455,18 @@
   .summary-card h2 { font-size: 22px; }
   .summary-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
   /* On a computer, two columns: the guest and the buttons on the left (they stay in view), the message on the right. */
-  .send-layout { display: grid; grid-template-columns: minmax(340px, 420px) minmax(0, 1fr); align-items: start; gap: 24px; margin-top: 4px; }
+  .send-layout { display: grid; grid-template-columns: minmax(340px, 420px) minmax(0, 1fr); align-items: start; gap: 24px; }
   .send-side { display: grid; gap: 16px; }
   @media (min-width: 901px) and (min-height: 640px) { .send-side { position: sticky; top: 24px; } }
-  @media (min-width: 901px) { .send-preview .img-bubble img { max-height: 160px; } } /* more of the message in view */
+  /* On a computer, more of the message fits beside the buttons: less padding above, a smaller image and
+     WhatsApp desktop's text size. */
+  @media (min-width: 901px) {
+    body[data-view="send"] .page { padding-top: 16px; }
+    .send-preview .img-bubble img { max-height: 120px; }
+    .send-preview .chat { font-size: 14px; line-height: 1.4; }
+  }
   .send-info { display: grid; gap: 16px; }
-  .send-preview { display: grid; gap: 12px; }
+  .send-preview { display: grid; gap: 12px; padding: 16px; }
   .nav { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; }
   .nav select { width: 100%; }
   .guest-who { display: grid; gap: 4px; }
@@ -484,7 +497,12 @@
   @media (max-width: 900px) {
     /* One column: the guest, the message, and the buttons floating at the bottom of the screen, within reach of a thumb. */
     .send-panel { max-width: 540px; margin: 0 auto; }
-    .send-layout { display: flex; flex-direction: column; align-items: stretch; gap: 12px; margin-top: 0; }
+    .send-head { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "back count" "bar bar" "save save"; gap: 8px 12px; }
+    #exit-send { grid-area: back; justify-self: start; }
+    .send-head .progress { grid-area: bar; }
+    #progress-text { grid-area: count; }
+    #send-save { grid-area: save; }
+    .send-layout { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
     .send-side { display: contents; }
     .send-preview { order: 2; }
     .send-actions { position: sticky; bottom: max(8px, env(safe-area-inset-bottom)); z-index: 10; order: 3; padding: 12px;
@@ -497,7 +515,6 @@
     .label-short { display: inline; }
     .status.hint { display: none; }
   }
-  @media (max-width: 640px) { #send-save-text { display: none; } }
   @media (max-width: 900px), (hover: none) { .key-hint, .shortcuts { display: none !important; } }
 
   /* ------------------------------------------------------------ footer, dialog, toast */
@@ -712,8 +729,8 @@
             strikethrough are kept; other styling is dropped (WhatsApp can't show it).</p>
         </div>
         <div id="preview-panel" role="tabpanel" aria-labelledby="tab-preview" hidden>
-          <p id="preview-label" class="caption"></p>
-          <div class="chat scroll" style="margin-top:8px">
+          <div class="chat scroll">
+            <p id="preview-label" class="chat-chip"></p>
             <div id="preview-img-bubble" class="img-bubble" hidden><img id="preview-img" alt="Invite image"></div>
             <div id="preview-text"></div>
           </div>
@@ -759,12 +776,12 @@
   <!-- Send: one guest at a time. On a computer the buttons sit beside the message. -->
   <section id="view-send" hidden>
     <div class="send-panel">
-      <div class="send-top">
+      <div class="send-head">
         <button type="button" id="exit-send" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg>Back to guests &amp; invitation</button>
+        <div class="progress" aria-hidden="true"><div id="progress-bar"></div></div>
         <span id="progress-text" class="progress-text"></span>
+        <p id="send-save" class="send-save" hidden><span id="send-save-text" hidden></span><button type="button" id="send-download" class="btn tertiary small" title="Your progress is kept in this browser. Download it to keep it in your Excel file."><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download updated guest list (.xlsx)</button></p>
       </div>
-      <div class="progress" aria-hidden="true"><div id="progress-bar"></div></div>
-      <p id="send-save" class="send-save" hidden><span id="send-save-text"></span><button type="button" id="send-download" class="btn tertiary small"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download updated guest list (.xlsx)</button></p>
       <div id="summary" class="card summary-card" hidden>
         <span class="done-icon"><svg class="icon" aria-hidden="true"><use href="#i-check-circle"/></svg></span>
         <h2 id="summary-title" tabindex="-1"></h2>
@@ -802,8 +819,8 @@
           <p class="shortcuts caption">Keyboard: <span id="shortcut-keys"></span> to copy, <kbd>Enter</kbd> to mark as sent, <kbd>←</kbd> <kbd>→</kbd> to change guest</p>
         </div>
         <div class="card send-preview">
-          <p id="card-caption" class="caption"></p>
           <div class="chat">
+            <p id="card-caption" class="chat-chip"></p>
             <div id="card-img-bubble" class="img-bubble" hidden><img id="card-img" alt="Invite image"></div>
             <div id="card-text"></div>
           </div>
@@ -1715,6 +1732,7 @@
     if (!state.workbook) state.view = "start";
     else if (state.view !== "send" || !state.selected.length) state.view = "setup";
     for (const name of VIEWS) $(`view-${name}`).hidden = name !== state.view;
+    document.body.dataset.view = state.view; // for styles that differ per screen
   }
 
   // ---------------------------------------------------------------- rendering
@@ -1889,7 +1907,7 @@
     renderEventPanel();
     renderTemplateWarnings();
     const sample = sampleGuest();
-    $("preview-label").textContent = `How the invitation looks for ${sample.name}${withImage() ? ": the image, then the message" : ""}.`;
+    $("preview-label").textContent = `Preview for ${sample.name}${withImage() ? ": the image, then the message" : ""}`;
     renderChat("preview", messageFor(sample));
     renderCard();
     renderSummary();
@@ -1938,7 +1956,8 @@
     $("autosave-label").textContent = `Also save changes straight into ${state.fileName}`;
     // Mid-way through sending; once everyone's sent, the summary offers the download instead.
     $("send-save").hidden = allSent() || (!state.autoSave && !state.changed);
-    $("send-save-text").textContent = state.autoSave ? `Saving straight into ${state.fileName}.` : "Progress is kept in this browser.";
+    $("send-save-text").textContent = state.autoSave ? `Saving straight into ${state.fileName}.` : "";
+    $("send-save-text").hidden = !state.autoSave;
     $("send-download").hidden = state.autoSave;
     renderSummary();
     renderMenu();

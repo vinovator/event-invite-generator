@@ -220,7 +220,7 @@
 
     return (
       `<div style="background:${bubble};color:${fg};border-radius:8px;padding:8px 12px;` +
-      "white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.45;" +
+      "white-space:pre-wrap;overflow-wrap:anywhere;" +
       "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;" +
       `box-shadow:0 1px 1px rgba(0,0,0,.13)">${html}</div>`
     );

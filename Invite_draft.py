@@ -44,7 +44,7 @@ if 'Addressable Names' not in df.columns:
 
 # 3. Define the Message Template
 try:
-    with open(PROMPT_FILE, 'r') as f:
+    with open(PROMPT_FILE, 'r', encoding='utf-8') as f:
         message_template = f.read()
 except FileNotFoundError:
     print(f"Error: '{PROMPT_FILE}' not found.")
@@ -73,7 +73,9 @@ with open(output_filename, 'w', encoding='utf-8') as f:
         # Check if name is valid (not empty or NaN)
         if pd.notna(guest_name):
             count += 1
-            final_message = message_template.format(name=guest_name)
+            # Same rules as app.py: str.replace (stray braces are safe) and
+            # legacy Markdown bold (**x**) -> WhatsApp bold (*x*).
+            final_message = message_template.replace("**", "*").replace("{name}", str(guest_name))
             
             header = f"--- MESSAGE {count} of {total_messages} FOR: {guest_name} ---"
             

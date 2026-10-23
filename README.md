@@ -111,5 +111,5 @@ Download the repository (*Code → Download ZIP*), unzip it and double-click `in
 - Tests: `node tests/convert.test.js`
 - Hosting: GitHub Pages serves the `main` branch (root folder), so pushing to `main` updates the live site within a minute or two.
 - Icons: [Lucide](https://lucide.dev) (ISC licence), inlined as an SVG sprite.
-- Screenshots: `docs/screenshots/`, taken from the sample guest list (Guest-1, Guest-2…) so no real names appear.
+- Screenshots: `docs/screenshots/`, taken from the sample guest list (Guest-1, Guest-2…) so no real names appear. To retake them after a UI change: `npm install --no-save puppeteer-core@23.11.1`, then `node tools/screenshots.js` (uses your installed Chrome).
 - Install as an app: `manifest.webmanifest` and the PNG icons in `icons/` (the logo from the page's favicon).

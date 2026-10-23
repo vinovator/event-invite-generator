@@ -8,3 +8,8 @@ Thumbs.db
 # Your real guest lists, images and templates: keep them in private/ so they
 # never end up in this public repo (the app opens files from anywhere).
 private/
+
+# Installed only to retake the README screenshots (tools/screenshots.js)
+node_modules/
+package.json
+package-lock.json
